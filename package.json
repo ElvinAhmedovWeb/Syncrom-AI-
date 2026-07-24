@@ -1,0 +1,52 @@
+{
+  "name": "syncrom-ai",
+  "version": "1.0.0",
+  "description": "Syncrom AI - Groq və ElevenLabs ilə işləyən süni intellekt köməkçisi",
+  "main": "electron/main.js",
+  "scripts": {
+    "build:web": "npm --prefix web run build",
+    "dev:api": "node server.js",
+    "dev:web": "npm --prefix web run dev",
+    "dev": "concurrently -k -n API,WEB -c blue,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "start": "npm run build:web && node server.js",
+    "electron": "npm run build:web && electron .",
+    "electron:vella": "npm run build:web && electron electron/vella-main.js",
+    "electron:schala": "npm run build:web && electron electron/schala-main.js",
+    "dist": "npm run build:web && electron-builder",
+    "dist:win": "npm run build:web && electron-builder --win",
+    "dist:vella:win": "npm run build:web && electron-builder --win --config electron-builder-vella.json"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.syncromai.desktop",
+    "productName": "Syncrom AI",
+    "files": [
+      "electron/**/*",
+      "server.js",
+      "web/dist/**/*",
+      "public/**/*",
+      "vella/**/*",
+      ".env",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/favicon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

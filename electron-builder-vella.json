@@ -1,0 +1,27 @@
+{
+  "appId": "com.syncromai.vella",
+  "productName": "Syncrom Vella",
+  "extraMetadata": {
+    "main": "electron/vella-main.js"
+  },
+  "files": [
+    "electron/**/*",
+    "server.js",
+    "web/dist/**/*",
+    "public/**/*",
+    "vella/**/*",
+    ".env",
+    "package.json"
+  ],
+  "directories": {
+    "output": "dist-vella"
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "public/vella-logo.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

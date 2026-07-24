@@ -1,0 +1,10 @@
+node_modules/
+.env
+dist/
+dist-vella/
+web/dist/
+web/node_modules/
+downloads/*.exe
+downloads/*.dmg
+downloads/*.AppImage
+downloads/*.zip
