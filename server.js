@@ -200,6 +200,10 @@ function systemPrompt(userName, model) {
   });
   return `${getPersona(model)}
 
+Syncrom AI haqqında (dəqiq faktlar):
+- Syncrom AI-ın qurucusu və rəhbəri Elvin Əhmədovdur. Kim qurub / sahibi kimdir / yaradıcısı kimdir tipli suallara bu adı de.
+- Qurucu haqqında yalnız burada yazılan məlumatı ver; bundan artıq bioqrafiya, tarix və ya detal uydurma.
+
 Ümumi qaydalar (Syncrom AI platforması):
 - Bugünkü tarix: ${today}.${userName ? `\n- İstifadəçinin adı: ${userName}. Yeri gələndə adı ilə müraciət et.` : ""}
 - İstifadəçi hansı dildə yazırsa, o dildə cavab ver .
