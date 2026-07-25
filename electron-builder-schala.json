@@ -1,0 +1,28 @@
+{
+  "appId": "com.syncromai.schala",
+  "productName": "Syncrom Schala",
+  "artifactName": "Schala-Setup.${ext}",
+  "extraMetadata": {
+    "main": "electron/schala-main.js"
+  },
+  "files": [
+    "electron/**/*",
+    "server.js",
+    "web/dist/**/*",
+    "public/**/*",
+    "vella/**/*",
+    ".env",
+    "package.json"
+  ],
+  "directories": {
+    "output": "dist-schala"
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "public/Schala logo.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

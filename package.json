@@ -14,7 +14,8 @@
     "electron:schala": "npm run build:web && electron electron/schala-main.js",
     "dist": "npm run build:web && electron-builder",
     "dist:win": "npm run build:web && electron-builder --win",
-    "dist:vella:win": "npm run build:web && electron-builder --win --config electron-builder-vella.json"
+    "dist:vella:win": "npm run build:web && electron-builder --win --config electron-builder-vella.json",
+    "dist:schala:win": "npm run build:web && electron-builder --win --config electron-builder-schala.json && copy /Y \"dist-schala\\Schala-Setup.exe\" \"downloads\\Schala-Setup.exe\""
   },
   "dependencies": {
     "dotenv": "^16.4.5",
