@@ -40,6 +40,28 @@ const FEATURES = [
   { title: "B2B satış & CRM", desc: "Vella lead-ləri qiymətləndirir, satış prosesini idarə edir və korporativ hesabatlar hazırlayır.", icon: <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-4.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4" /> },
 ];
 
+const STATS = [
+  { num: "5", label: "İxtisaslaşmış zəka modeli" },
+  { num: "2", label: "Masaüstü tətbiq — Vella & Schala" },
+  { num: "100%", label: "Azərbaycan dili dəstəyi" },
+  { num: "0 ₼", label: "Başlamaq üçün — login belə tələb olunmur" },
+];
+
+const STEPS = [
+  { title: "Modelini seç", desc: "Alina, Keyla, Vella, Trila və ya Schala — işinə uyğun olanı bir kliklə seç." },
+  { title: "Sualını yaz və ya danış", desc: "Mətn yaz, mikrofonla danış, hətta şəkil əlavə et — model səni Azərbaycan dilində anlayır." },
+  { title: "Nəticəni al", desc: "Analiz, kod, dərs izahı və ya səsli cavab — saniyələr içində. Söhbətlərin lokal saxlanılır." },
+];
+
+const FAQ = [
+  { q: "Syncrom AI pulsuzdur?", a: "Bəli — brauzerdə istifadə pulsuzdur və başlamaq üçün qeydiyyat belə tələb olunmur. Şəkil yaratma da daxil olmaqla əsas funksiyalar pulsuzdur." },
+  { q: "Qeydiyyat olmadan istifadə edə bilərəm?", a: "Bəli. Qonaq rejimində dərhal başlaya bilərsən — söhbətlərin cihazında lokal saxlanılır. Hesab açsan, söhbətlərin bütün cihazlarında sinxronlaşır." },
+  { q: "Məlumatlarım təhlükəsizdirmi?", a: "Sorğuların şifrələnmiş bağlantı ilə ötürülür. Qonaq rejimində söhbətlər yalnız sənin brauzerində qalır, serverdə saxlanılmır." },
+  { q: "Azərbaycan dilini nə qədər yaxşı bilir?", a: "Modellər xüsusi olaraq Azərbaycan dili üçün optimallaşdırılıb — təbii, doğma dildə ünsiyyət qurur və dilin incəliklərini anlayır." },
+  { q: "Hansı model nə üçündür?", a: "Alina — analiz və hesabatlar; Keyla — proqramlaşdırma; Vella — satış və CRM; Trila — təhsil; Schala — masaüstü AI kod redaktoru. Söhbət içində istənilən vaxt dəyişə bilərsən." },
+  { q: "Masaüstü tətbiqlərini haradan yükləyim?", a: "«Yüklə» bölməsindən Syncrom Vella və Schala üçün Windows quraşdırıcılarını endirə bilərsən. Brauzer versiyası da tam işləkdir." },
+];
+
 const WindowsIcon = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
     <path d="M3 5.5L10.5 4.4v7.1H3V5.5zm0 13L10.5 19.6v-7H3v6zm8.5 1.3L21 21V12.5h-9.5v7.3zM11.5 4.2L21 3v8.5h-9.5V4.2z" />
@@ -89,6 +111,7 @@ export default function Landing() {
             <a href="#schala">Schala</a>
             <a href="#download">Yüklə</a>
             <a href="#features">Xüsusiyyətlər</a>
+            <a href="#faq">FAQ</a>
           </div>
           <a href="/chat" className="l-btn l-btn-primary">
             Başla
@@ -151,6 +174,25 @@ export default function Landing() {
               <motion.span key={c.label} className={`l-hero-chip ${c.tagClass}`} variants={fadeUp}>
                 <span className="l-dot" /> {c.label}
               </motion.span>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="l-stats">
+        <div className="l-container">
+          <motion.div
+            className="l-stats-row"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-40px" }}
+            variants={stagger}
+          >
+            {STATS.map((s) => (
+              <motion.div key={s.label} className="l-stat" variants={fadeUp}>
+                <span className="l-stat-num">{s.num}</span>
+                <span className="l-stat-label">{s.label}</span>
+              </motion.div>
             ))}
           </motion.div>
         </div>
@@ -383,6 +425,36 @@ export default function Landing() {
         </div>
       </section>
 
+      <section id="how" className="l-how">
+        <div className="l-container">
+          <motion.div
+            className="l-section-head"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2>Üç addımda başla</h2>
+            <p>Qeydiyyat, quraşdırma, gözləmə yoxdur — brauzerdə aç və dərhal işə başla.</p>
+          </motion.div>
+          <motion.div
+            className="l-how-grid"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={stagger}
+          >
+            {STEPS.map((s, i) => (
+              <motion.div key={s.title} className="l-how-step" variants={fadeUp}>
+                <span className="l-how-num">{i + 1}</span>
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       <section id="download" className="l-download">
         <div className="l-container">
           <motion.div
@@ -513,6 +585,38 @@ export default function Landing() {
         </div>
       </section>
 
+      <section id="faq" className="l-faq">
+        <div className="l-container">
+          <motion.div
+            className="l-section-head"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2>Tez-tez verilən suallar</h2>
+            <p>Ağlına gələn ilk suallar — qısa və aydın cavablarla.</p>
+          </motion.div>
+          <motion.div
+            className="l-faq-list"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={stagger}
+          >
+            {FAQ.map((f) => (
+              <motion.details key={f.q} className="l-faq-item" variants={fadeUp}>
+                <summary>
+                  {f.q}
+                  <span className="l-faq-icon" />
+                </summary>
+                <p>{f.a}</p>
+              </motion.details>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       <section id="cta" className="l-cta">
         <div className="l-container">
           <motion.div
@@ -564,6 +668,8 @@ export default function Landing() {
             </div>
             <div>
               <h4>Şirkət</h4>
+              <a href="#how">Necə başlamalı</a>
+              <a href="#faq">FAQ</a>
               <a href="mailto:syncromai@gmail.com">Əlaqə</a>
             </div>
           </div>
