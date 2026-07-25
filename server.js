@@ -376,6 +376,14 @@ process.stdin.on("end", () => {
 `;
 
 function executeJavaScript(code) {
+  // Vercel (və digər serverless) mühitində child_process yoxdur — kod icrası
+  // mümkün deyil. Modelə təmiz mesaj qaytarırıq ki, o, alternativ yolla davam etsin.
+  if (process.env.VERCEL) {
+    return Promise.resolve({
+      ok: false,
+      output: "Kod icra aləti bu serverdə (serverless) əlçatan deyil. Kodu izah et və ya nəticəni özün hesabla.",
+    });
+  }
   return new Promise((resolve) => {
     let settled = false;
     const finish = (result) => {
@@ -839,11 +847,18 @@ app.post("/api/generate-image", async (req, res) => {
 // "?download=pending" ilə qaytarırıq (istifadəçiyə səbəbini izah edir).
 // ============================================================
 const DOWNLOADS_DIR = path.join(__dirname, "downloads");
+// DOWNLOADS_BASE_URL təyin olunubsa (məs. GitHub Releases qovluğu), lokal fayl
+// yoxdursa oraya yönləndiririk. Bu, installer-lər git-ə daxil edilmədiyi üçün
+// Render/Railway kimi remote hostlarda download-un işləməsini təmin edir.
+const DOWNLOADS_BASE_URL = (process.env.DOWNLOADS_BASE_URL || "").replace(/\/+$/, "");
 app.get("/downloads/:file", (req, res) => {
   const safe = path.basename(req.params.file); // path-traversal qorunması
   const full = path.join(DOWNLOADS_DIR, safe);
   if (fs.existsSync(full) && fs.statSync(full).isFile()) {
     return res.download(full);
+  }
+  if (DOWNLOADS_BASE_URL) {
+    return res.redirect(302, `${DOWNLOADS_BASE_URL}/${encodeURIComponent(safe)}`);
   }
   res.redirect("/?download=pending#download");
 });
@@ -861,17 +876,23 @@ app.get(/^(?!\/api).*/, (req, res) => {
   });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Syncrom AI serveri işləyir: http://localhost:${PORT}`);
-});
+// Vercel (serverless) mühitində port dinlənilmir — Express app "api/index.js"
+// funksiyası tərəfindən handler kimi export olunur. Lokal/Electron/Render-də isə
+// normal HTTP serveri kimi qalxır.
+let server = null;
+if (!process.env.VERCEL) {
+  server = app.listen(PORT, () => {
+    console.log(`Syncrom AI serveri işləyir: http://localhost:${PORT}`);
+  });
 
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(`Port ${PORT} artıq istifadədədir — başqa "npm start"/Electron nüsxəsi işləyir ola bilər.`);
-  } else {
-    console.error("Server başlaya bilmədi:", err);
-  }
-});
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`Port ${PORT} artıq istifadədədir — başqa "npm start"/Electron nüsxəsi işləyir ola bilər.`);
+    } else {
+      console.error("Server başlaya bilmədi:", err);
+    }
+  });
+}
 
 // Electron (və ya başqa host) bu modulu require edib "server" hadisəsini gözləyə bilsin deyə
 module.exports = { app, server, PORT };

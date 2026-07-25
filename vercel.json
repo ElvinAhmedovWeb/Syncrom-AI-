@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm --prefix web install --include=dev && npm --prefix web run build",
+  "outputDirectory": "web/dist",
+  "installCommand": "npm install --omit=dev",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "vella/**",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/downloads/(.*)", "destination": "/api/index" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
