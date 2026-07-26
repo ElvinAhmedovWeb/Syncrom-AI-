@@ -113,6 +113,47 @@
     display: flex;
   }
 }
+/* Naviqasiyanın sağ tərəfi: dil seçici + "Başla" */
+.l-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.l-langs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--l-border);
+  border-radius: 9px;
+  background: var(--l-surface-muted);
+}
+.l-lang {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--l-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.l-lang:hover {
+  color: var(--l-fg);
+}
+.l-lang.active {
+  background: var(--l-fg);
+  color: var(--l-bg);
+}
+/* Mobilde dil seçici yer tutmasın — yalnız AZ/EN qalır kimi görünməsin,
+   ona görə tam gizlədilir, dil chat ekranındaki profil menyusundan dəyişilir */
+@media (max-width: 519px) {
+  .l-langs {
+    display: none;
+  }
+}
+
 .l-btn {
   display: inline-flex;
   align-items: center;

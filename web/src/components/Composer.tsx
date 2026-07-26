@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { resizeImageFile } from "../lib/image";
+import { translateTargetLabel, useT } from "../lib/i18n";
 import PlusMenu from "./PlusMenu";
 
 interface Props {
@@ -24,6 +25,12 @@ interface Props {
   agentToolsEnabled?: boolean;
   agentModeActive: boolean;
   onToggleAgentMode: () => void;
+  webSearchActive: boolean;
+  onToggleWebSearch: () => void;
+  translateActive: boolean;
+  onToggleTranslate: () => void;
+  translateTo: string;
+  onSelectTranslateTo: (code: string) => void;
   hint: string;
   placeholder: string;
 }
@@ -49,9 +56,16 @@ export default function Composer({
   agentToolsEnabled,
   agentModeActive,
   onToggleAgentMode,
+  webSearchActive,
+  onToggleWebSearch,
+  translateActive,
+  onToggleTranslate,
+  translateTo,
+  onSelectTranslateTo,
   hint,
   placeholder,
 }: Props) {
+  const t = useT();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -86,15 +100,38 @@ export default function Composer({
 
   return (
     <footer className="composer">
-      {(imageGenActive || deepThinkActive || agentModeActive) && (
+      {(imageGenActive || deepThinkActive || agentModeActive || webSearchActive || translateActive) && (
         <div className="mode-pills">
           {imageGenActive && (
             <span className="mode-pill">
               <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
                 <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" />
               </svg>
-              Şəkil yaratma
-              <button type="button" onClick={onToggleImageGen} aria-label="Söndür">×</button>
+              {t("mode.imageGen")}
+              <button type="button" onClick={onToggleImageGen} aria-label={t("composer.turnOff")}>×</button>
+            </span>
+          )}
+          {translateActive && (
+            <span className="mode-pill">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 5h9M8.5 5v2c0 3.5-2 6.5-4.5 8" />
+                <path d="M6 12.5c0 2 2.5 4 6 4.5" />
+                <path d="M13 20l4-10 4 10M14.6 17h4.8" />
+              </svg>
+              {t("mode.translate", { lang: translateTargetLabel(translateTo) })}
+              <button type="button" onClick={onToggleTranslate} aria-label={t("composer.turnOff")}>×</button>
+            </span>
+          )}
+          {webSearchActive && (
+            <span className="mode-pill">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <line x1="3.4" y1="9" x2="20.6" y2="9" />
+                <line x1="3.4" y1="15" x2="20.6" y2="15" />
+                <path d="M12 3a14 14 0 0 0 0 18M12 3a14 14 0 0 1 0 18" />
+              </svg>
+              {t("mode.webSearch")}
+              <button type="button" onClick={onToggleWebSearch} aria-label={t("composer.turnOff")}>×</button>
             </span>
           )}
           {deepThinkActive && (
@@ -102,8 +139,8 @@ export default function Composer({
               <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
               </svg>
-              Deep Think
-              <button type="button" onClick={onToggleDeepThink} aria-label="Söndür">×</button>
+              {t("mode.deepThink")}
+              <button type="button" onClick={onToggleDeepThink} aria-label={t("composer.turnOff")}>×</button>
             </span>
           )}
           {agentModeActive && (
@@ -112,8 +149,8 @@ export default function Composer({
                 <polyline points="4 17 10 11 4 5" />
                 <line x1="12" y1="19" x2="20" y2="19" />
               </svg>
-              Kod Köməkçisi
-              <button type="button" onClick={onToggleAgentMode} aria-label="Söndür">×</button>
+              {t("mode.agent")}
+              <button type="button" onClick={onToggleAgentMode} aria-label={t("composer.turnOff")}>×</button>
             </span>
           )}
         </div>
@@ -121,7 +158,7 @@ export default function Composer({
 
       {pendingImage && (
         <div className="image-preview">
-          <img src={pendingImage} alt="Yüklənən şəkil" />
+          <img src={pendingImage} alt={t("composer.uploadedImage")} />
           <button type="button" className="image-remove-btn" onClick={() => onImageChange(null)}>
             ×
           </button>
@@ -140,6 +177,12 @@ export default function Composer({
           agentToolsEnabled={agentToolsEnabled}
           agentModeActive={agentModeActive}
           onToggleAgentMode={onToggleAgentMode}
+          webSearchActive={webSearchActive}
+          onToggleWebSearch={onToggleWebSearch}
+          translateActive={translateActive}
+          onToggleTranslate={onToggleTranslate}
+          translateTo={translateTo}
+          onSelectTranslateTo={onSelectTranslateTo}
           onUploadDocument={() => documentInputRef.current?.click()}
         />
         <input
@@ -184,7 +227,7 @@ export default function Composer({
           <motion.button
             type="button"
             className={`pill-icon${recording ? " recording" : ""}`}
-            title="Səslə yaz"
+            title={t("composer.mic")}
             onClick={onMicToggle}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -201,7 +244,7 @@ export default function Composer({
         <motion.button
           type="button"
           className={`pill-send${busy ? " stop" : ""}`}
-          title={busy ? "Dayandır" : "Göndər"}
+          title={busy ? t("composer.stop") : t("composer.send")}
           disabled={!busy && !value.trim() && !pendingImage}
           onClick={busy ? onStop : onSend}
           whileHover={{ y: busy ? 0 : -2, scale: busy ? 1.08 : 1 }}

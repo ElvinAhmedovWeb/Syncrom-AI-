@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { EASE_OUT } from "../lib/motion";
+import { LANGS, useI18n } from "../lib/i18n";
 import {
   loginWithEmail,
   registerWithEmail,
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function AuthScreen({ logoSrc, onGuest }: Props) {
+  const { t, lang, setLang } = useI18n();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,7 +27,7 @@ export default function AuthScreen({ logoSrc, onGuest }: Props) {
     e.preventDefault();
     setError("");
     if (!email || pass.length < 6) {
-      setError(pass.length < 6 ? "Şifrə çox zəifdir (ən azı 6 simvol)." : "E-poçt ünvanı düzgün deyil.");
+      setError(pass.length < 6 ? t("auth.weakPass") : t("auth.badEmail"));
       return;
     }
     setBusy(true);
@@ -53,6 +55,23 @@ export default function AuthScreen({ logoSrc, onGuest }: Props) {
 
   return (
     <div className="auth-screen">
+      {/* Dil seçimi giriş ekranında da lazımdır — istifadəçi hesaba
+          girməmişdən interfeysi öz dilinə keçirə bilsin. */}
+      <div className="auth-langs" role="group" aria-label={t("acct.language")}>
+        {LANGS.map((l) => (
+          <button
+            type="button"
+            key={l.code}
+            className={`auth-lang${l.code === lang ? " active" : ""}`}
+            title={l.label}
+            aria-pressed={l.code === lang}
+            onClick={() => setLang(l.code)}
+          >
+            {l.short}
+          </button>
+        ))}
+      </div>
+
       <motion.div
         className="auth-card"
         initial={{ opacity: 0, y: 18, scale: 0.98 }}
@@ -65,14 +84,14 @@ export default function AuthScreen({ logoSrc, onGuest }: Props) {
         <h2 className="auth-title">
           SYNCROM<b>AI</b>
         </h2>
-        <p className="auth-sub">Davam etmək üçün hesabına daxil ol</p>
+        <p className="auth-sub">{t("auth.sub")}</p>
 
         <div className={`auth-tabs${mode === "register" ? " register" : ""}`}>
           <button type="button" className={`auth-tab${mode === "login" ? " active" : ""}`} onClick={() => setMode("login")}>
-            Daxil ol
+            {t("auth.login")}
           </button>
           <button type="button" className={`auth-tab${mode === "register" ? " active" : ""}`} onClick={() => setMode("register")}>
-            Qeydiyyat
+            {t("auth.register")}
           </button>
           <span className="auth-tab-slider" />
         </div>
@@ -80,16 +99,16 @@ export default function AuthScreen({ logoSrc, onGuest }: Props) {
         <form onSubmit={submit}>
           {mode === "register" && (
             <div className="field">
-              <input type="text" placeholder="Adın" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+              <input type="text" placeholder={t("auth.name")} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
             </div>
           )}
           <div className="field">
-            <input type="email" placeholder="E-poçt" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+            <input type="email" placeholder={t("auth.email")} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
           </div>
           <div className="field">
             <input
               type="password"
-              placeholder="Şifrə (ən azı 6 simvol)"
+              placeholder={t("auth.pass")}
               value={pass}
               onChange={(e) => setPass(e.target.value)}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
@@ -99,23 +118,23 @@ export default function AuthScreen({ logoSrc, onGuest }: Props) {
           </div>
           {error && <p className="auth-error">{error}</p>}
           <button type="submit" className="auth-submit" disabled={busy}>
-            {mode === "login" ? "Daxil ol" : "Qeydiyyatdan keç"}
+            {mode === "login" ? t("auth.login") : t("auth.registerSubmit")}
           </button>
         </form>
 
         <div className="auth-divider">
-          <span>və ya</span>
+          <span>{t("auth.or")}</span>
         </div>
 
         <button type="button" className="auth-google" onClick={google}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
             <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z" />
           </svg>
-          <span>Google ilə davam et</span>
+          <span>{t("auth.google")}</span>
         </button>
 
         <button type="button" className="auth-guest" onClick={onGuest}>
-          Qonaq kimi davam et →
+          {t("auth.guest")}
         </button>
       </motion.div>
     </div>

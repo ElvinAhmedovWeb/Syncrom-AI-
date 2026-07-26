@@ -20,10 +20,13 @@ import {
   getDocs,
   deleteDoc,
   doc,
+  getDoc,
+  setDoc,
   updateDoc,
   type Firestore,
 } from "firebase/firestore";
 import type { Chat, ChatMessage } from "../types";
+import type { MemoryFact } from "./memory";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD2GNLUEGJCr7d_ux6WCYUOUbD-NYgSwt0",
@@ -132,6 +135,31 @@ export async function saveChat(uid: string, chat: Chat): Promise<string> {
 export async function deleteChatDoc(uid: string, chatId: string): Promise<void> {
   if (!ensureInit() || !db) return;
   await deleteDoc(doc(db, "users", uid, "chats", chatId));
+}
+
+// ---------- Yaddaş ----------
+// Bütün faktlar bir sənəddə saxlanılır (users/{uid}/meta/memory) — sayı
+// azdır (maks. 40), ona görə ayrı kolleksiya lazım deyil və bir oxu/yazma
+// kifayət edir.
+export async function loadUserMemories(uid: string): Promise<MemoryFact[]> {
+  if (!ensureInit() || !db) return [];
+  try {
+    const snap = await getDoc(doc(db, "users", uid, "meta", "memory"));
+    const facts = snap.exists() ? (snap.data().facts as MemoryFact[] | undefined) : undefined;
+    return Array.isArray(facts) ? facts : [];
+  } catch (e) {
+    console.warn("Yaddaş yüklənmədi:", e);
+    return [];
+  }
+}
+
+export async function saveUserMemories(uid: string, facts: MemoryFact[]): Promise<void> {
+  if (!ensureInit() || !db) return;
+  try {
+    await setDoc(doc(db, "users", uid, "meta", "memory"), { facts, updatedAt: Date.now() });
+  } catch (e) {
+    console.warn("Yaddaş saxlanılmadı:", e);
+  }
 }
 
 export const AUTH_ERRORS: Record<string, string> = {

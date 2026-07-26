@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { EASE_OUT } from "../lib/motion";
+import { LANGS, useI18n } from "../lib/i18n";
+import { fetchModels } from "../lib/api";
+import type { ModelInfo } from "../types";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -12,54 +15,12 @@ const stagger = {
   show: { transition: { staggerChildren: 0.08 } },
 };
 
-const MODELS = [
-  { tagClass: "l-tag-alina", tag: "Analitik Köməkçi", name: "Alina 1.6", desc: "Dərin analiz, hesabatlar və mürəkkəb məsələlərin həlli üçün." },
-  { tagClass: "l-tag-alina", tag: "Analitik Köməkçi Pro", name: "Alina 1.7", badge: "Şəkil analizi", desc: "Alina 1.6-nın təkmilləşdirilmiş versiyası — şəkil, cədvəl və qrafikləri oxuyub təhlil edir." },
-  { tagClass: "l-tag-keyla", tag: "Kod Mütəxəssisi", name: "Keyla 5.8", badge: "Kod Köməkçisi", desc: "Proqramlaşdırma, debug, arxitektura — kodu təkcə yazmır, təhlükəsiz mühitdə İCRA edib nəticəni yoxlayır." },
-  { tagClass: "l-tag-vella", tag: "B2B CRM & Satış", name: "Syncrom Vella", desc: "Satış avtomatlaşdırılması, lead qiymətləndirməsi, korporativ analitika və B2B müştəri xidmətləri." },
-  { tagClass: "l-tag-trila", tag: "Virtual Müəllim", name: "Trila 1.4", desc: "Mövzuları sadə dildə izah edən, motivasiya verən öyrətmə yoldaşı." },
-];
-
 const HERO_CHIPS = [
   { label: "Alina", tagClass: "l-tag-alina" },
   { label: "Keyla", tagClass: "l-tag-keyla" },
   { label: "Vella", tagClass: "l-tag-vella" },
   { label: "Trila", tagClass: "l-tag-trila" },
   { label: "Schala", tagClass: "l-tag-schala" },
-];
-
-const FEATURES = [
-  { title: "Məlumat Təhlükəsizliyi", desc: "Bütün sorğularınız və məlumatlarınız ən yüksək səviyyəli şifrələmə standartları ilə qorunur.", icon: <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> },
-  { title: "Sürətli Emal", desc: "Saniyələr içində uzun mətnləri analiz edir və strukturlaşdırılmış nəticələri təqdim edirik.", icon: <path d="M13 10V3L4 14h7v7l9-11h-7z" /> },
-  { title: "Dil Dəstəyi", desc: "Azərbaycan dili üzərində tam ixtisaslaşmış modellər ilə təbii ünsiyyət qurun.", icon: <path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10" /> },
-  { title: "Şəkil Analizi", desc: "Alina göndərilən şəkilləri analiz edib təsvir edə və suallarınıza cavab verə bilir.", icon: <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" /> },
-  { title: "Şəkil yaratma (pulsuz)", desc: "İstədiyini təsvir et, saniyələr içində pulsuz şəkil yaradılsın — API açarı, ödəniş tələb olunmur.", icon: <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" /> },
-  { title: "Kod Köməkçisi", desc: "Keyla lazım gələndə kodu icra edir, internetdə axtarış edir — cavabı güman etmir, yoxlayır.", icon: <path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 5l-2 14" /> },
-  { title: "Deep Think", desc: "Sualdan açar söz çıxarır, araşdırma aparır, addım-addım əsaslandırılmış, mənbəli cavab qurur.", icon: <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" /> },
-  { title: "Addım-addım izah", desc: "Trila çətin mövzuları kiçik hissələrə bölərək şagirdlərə öyrətməyə yönəlir.", icon: <path d="M4 6h16M4 12h16M4 18h7" /> },
-  { title: "B2B satış & CRM", desc: "Vella lead-ləri qiymətləndirir, satış prosesini idarə edir və korporativ hesabatlar hazırlayır.", icon: <path d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-4.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4" /> },
-];
-
-const STATS = [
-  { num: "5", label: "İxtisaslaşmış zəka modeli" },
-  { num: "2", label: "Masaüstü tətbiq — Vella & Schala" },
-  { num: "100%", label: "Azərbaycan dili dəstəyi" },
-  { num: "0 ₼", label: "Başlamaq üçün — login belə tələb olunmur" },
-];
-
-const STEPS = [
-  { title: "Modelini seç", desc: "Alina, Keyla, Vella, Trila və ya Schala — işinə uyğun olanı bir kliklə seç." },
-  { title: "Sualını yaz və ya danış", desc: "Mətn yaz, mikrofonla danış, hətta şəkil əlavə et — model səni Azərbaycan dilində anlayır." },
-  { title: "Nəticəni al", desc: "Analiz, kod, dərs izahı və ya səsli cavab — saniyələr içində. Söhbətlərin lokal saxlanılır." },
-];
-
-const FAQ = [
-  { q: "Syncrom AI pulsuzdur?", a: "Bəli — brauzerdə istifadə pulsuzdur və başlamaq üçün qeydiyyat belə tələb olunmur. Şəkil yaratma da daxil olmaqla əsas funksiyalar pulsuzdur." },
-  { q: "Qeydiyyat olmadan istifadə edə bilərəm?", a: "Bəli. Qonaq rejimində dərhal başlaya bilərsən — söhbətlərin cihazında lokal saxlanılır. Hesab açsan, söhbətlərin bütün cihazlarında sinxronlaşır." },
-  { q: "Məlumatlarım təhlükəsizdirmi?", a: "Sorğuların şifrələnmiş bağlantı ilə ötürülür. Qonaq rejimində söhbətlər yalnız sənin brauzerində qalır, serverdə saxlanılmır." },
-  { q: "Azərbaycan dilini nə qədər yaxşı bilir?", a: "Modellər xüsusi olaraq Azərbaycan dili üçün optimallaşdırılıb — təbii, doğma dildə ünsiyyət qurur və dilin incəliklərini anlayır." },
-  { q: "Hansı model nə üçündür?", a: "Alina — analiz və hesabatlar; Keyla — proqramlaşdırma; Vella — satış və CRM; Trila — təhsil; Schala — masaüstü AI kod redaktoru. Söhbət içində istənilən vaxt dəyişə bilərsən." },
-  { q: "Masaüstü tətbiqlərini haradan yükləyim?", a: "«Yüklə» bölməsindən Syncrom Vella və Schala üçün Windows quraşdırıcılarını endirə bilərsən. Brauzer versiyası da tam işləkdir." },
 ];
 
 const WindowsIcon = () => (
@@ -75,10 +36,12 @@ const DownloadIcon = () => (
 );
 
 export default function Landing() {
+  const { t, lang, setLang } = useI18n();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [demoUnavailable, setDemoUnavailable] = useState(false);
   const [downloadPending, setDownloadPending] = useState(false);
+  const [models, setModels] = useState<ModelInfo[]>([]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -86,6 +49,12 @@ export default function Landing() {
       setDownloadPending(true);
     }
   }, []);
+
+  // Model kartları serverdən gəlir — yeni model əlavə edildikdə landing
+  // özü yenilənir, siyahını iki yerdə saxlamağa ehtiyac qalmır.
+  useEffect(() => {
+    fetchModels(lang).then((data) => data && setModels(data.models));
+  }, [lang]);
 
   function handlePlay() {
     const v = videoRef.current;
@@ -95,6 +64,40 @@ export default function Landing() {
       p.then(() => setPlaying(true)).catch(() => setDemoUnavailable(true));
     }
   }
+
+  const FEATURES = [
+    { title: t("l.feat.securityT"), desc: t("l.feat.securityD"), icon: <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> },
+    { title: t("l.feat.speedT"), desc: t("l.feat.speedD"), icon: <path d="M13 10V3L4 14h7v7l9-11h-7z" /> },
+    { title: t("l.feat.langT"), desc: t("l.feat.langD"), icon: <path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10" /> },
+    { title: t("l.feat.visionT"), desc: t("l.feat.visionD"), icon: <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" /> },
+    { title: t("l.feat.imgGenT"), desc: t("l.feat.imgGenD"), icon: <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" /> },
+    { title: t("l.feat.agentT"), desc: t("l.feat.agentD"), icon: <path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 5l-2 14" /> },
+    { title: t("l.feat.deepT"), desc: t("l.feat.deepD"), icon: <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" /> },
+    { title: t("l.feat.webT"), desc: t("l.feat.webD"), icon: <path d="M12 3a9 9 0 100 18 9 9 0 000-18zM3.4 9h17.2M3.4 15h17.2M12 3a14 14 0 000 18M12 3a14 14 0 010 18" /> },
+    { title: t("l.feat.translateT"), desc: t("l.feat.translateD"), icon: <path d="M4 5h9M8.5 5v2c0 3.5-2 6.5-4.5 8M6 12.5c0 2 2.5 4 6 4.5M13 20l4-10 4 10M14.6 17h4.8" /> },
+  ];
+
+  const STATS = [
+    { num: String(models.length || 8), label: t("l.stats.models") },
+    { num: "2", label: t("l.stats.apps") },
+    { num: "4", label: t("l.stats.langs") },
+    { num: "0 ₼", label: t("l.stats.price") },
+  ];
+
+  const STEPS = [
+    { title: t("l.how.s1t"), desc: t("l.how.s1d") },
+    { title: t("l.how.s2t"), desc: t("l.how.s2d") },
+    { title: t("l.how.s3t"), desc: t("l.how.s3d") },
+  ];
+
+  const FAQ = [
+    { q: t("l.faq.q1"), a: t("l.faq.a1") },
+    { q: t("l.faq.q2"), a: t("l.faq.a2") },
+    { q: t("l.faq.q3"), a: t("l.faq.a3") },
+    { q: t("l.faq.q4"), a: t("l.faq.a4") },
+    { q: t("l.faq.q5"), a: t("l.faq.a5") },
+    { q: t("l.faq.q6"), a: t("l.faq.a6") },
+  ];
 
   return (
     <div className="landing-page">
@@ -107,15 +110,31 @@ export default function Landing() {
             <span>Syncrom AI</span>
           </a>
           <div className="l-nav-links">
-            <a href="#models">Modellər</a>
-            <a href="#schala">Schala</a>
-            <a href="#download">Yüklə</a>
-            <a href="#features">Xüsusiyyətlər</a>
-            <a href="#faq">FAQ</a>
+            <a href="#models">{t("l.nav.models")}</a>
+            <a href="#schala">{t("l.nav.schala")}</a>
+            <a href="#download">{t("l.nav.download")}</a>
+            <a href="#features">{t("l.nav.features")}</a>
+            <a href="#faq">{t("l.nav.faq")}</a>
           </div>
-          <a href="/chat" className="l-btn l-btn-primary">
-            Başla
-          </a>
+          <div className="l-nav-right">
+            <div className="l-langs" role="group" aria-label={t("acct.language")}>
+              {LANGS.map((l) => (
+                <button
+                  type="button"
+                  key={l.code}
+                  className={`l-lang${l.code === lang ? " active" : ""}`}
+                  title={l.label}
+                  aria-pressed={l.code === lang}
+                  onClick={() => setLang(l.code)}
+                >
+                  {l.short}
+                </button>
+              ))}
+            </div>
+            <a href="/chat" className="l-btn l-btn-primary">
+              {t("l.nav.start")}
+            </a>
+          </div>
         </div>
       </nav>
 
@@ -123,7 +142,7 @@ export default function Landing() {
         <div className="l-container">
           <motion.div initial="hidden" animate="show" variants={fadeUp}>
             <div className="l-pill">
-              <span className="l-dot" /> Azərbaycan dilində süni zəka
+              <span className="l-dot" /> {t("l.hero.pill")}
             </div>
           </motion.div>
           <motion.h1
@@ -133,7 +152,7 @@ export default function Landing() {
             variants={fadeUp}
             transition={{ delay: 0.08 }}
           >
-            Süni zəka ilə düşüncə tərzinizi genişləndirin
+            {t("l.hero.h1")}
           </motion.h1>
           <motion.p
             className="l-lead"
@@ -142,8 +161,7 @@ export default function Landing() {
             variants={fadeUp}
             transition={{ delay: 0.16 }}
           >
-            Syncrom AI analiz, kodlaşdırma, satış və təhsil üçün 5 ixtisaslaşmış zəka modelini bir
-            platformada təqdim edir — brauzerdə və ya masaüstündə.
+            {t("l.hero.lead")}
           </motion.p>
           <motion.div
             className="l-actions"
@@ -153,14 +171,14 @@ export default function Landing() {
             transition={{ delay: 0.24 }}
           >
             <a href="/chat" className="l-btn l-btn-primary">
-              İndi yoxlayın
+              {t("l.hero.try")}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </a>
             <a href="#download" className="l-btn l-btn-ghost">
               <DownloadIcon />
-              Masaüstü tətbiqlər
+              {t("l.hero.desktop")}
             </a>
           </motion.div>
           <motion.div
@@ -209,28 +227,25 @@ export default function Landing() {
               transition={{ duration: 0.6, ease: EASE_OUT }}
             >
               <div className="l-tag l-tag-alina">
-                <span className="l-dot" /> Analitik Köməkçi
+                <span className="l-dot" /> {models.find((m) => m.id === "alina-1.6")?.tag || "Alina"}
               </div>
               <h2>Alina 1.6</h2>
-              <p className="l-desc">
-                Mürəkkəb məlumatları emal etmək, dərin analizlər aparmaq və peşəkar hesabatlar
-                hazırlamaq üçün optimallaşdırılmışdır.
-              </p>
+              <p className="l-desc">{t("l.demo.alinaDesc")}</p>
               <div className="l-mockchat">
                 <div className="l-mmsg">
                   <div className="l-mavatar l-mavatar-alina">A</div>
-                  <div className="l-mbubble in">Bu maliyyə cədvəlini analiz edib əsas riskləri qeyd edə bilərsən?</div>
+                  <div className="l-mbubble in">{t("l.demo.alinaQ")}</div>
                 </div>
                 <div className="l-mmsg out">
                   <div className="l-mavatar l-mavatar-bot">
                     <i />
                   </div>
                   <div className="l-mbubble out">
-                    Bəli, təqdim etdiyiniz cədvələ əsasən 3 əsas risk müəyyən edilmişdir:
+                    {t("l.demo.alinaA")}
                     <ol>
-                      <li>Əməliyyat xərclərinin 12% artımı.</li>
-                      <li>İnflyasiya təzyiqi.</li>
-                      <li>Likvidlik nisbətinin azalması.</li>
+                      <li>{t("l.demo.alinaR1")}</li>
+                      <li>{t("l.demo.alinaR2")}</li>
+                      <li>{t("l.demo.alinaR3")}</li>
                     </ol>
                   </div>
                 </div>
@@ -245,26 +260,20 @@ export default function Landing() {
               transition={{ duration: 0.6, delay: 0.1, ease: EASE_OUT }}
             >
               <div className="l-tag l-tag-trila">
-                <span className="l-dot" /> Virtual Müəllim
+                <span className="l-dot" /> {models.find((m) => m.id === "trila-1.4")?.tag || "Trila"}
               </div>
               <h2>Trila 1.4</h2>
-              <p className="l-desc">
-                Şagirdlər və tələbələr üçün mövzuları sadə dildə izah edən, motivasiya verən
-                öyrətmə yoldaşı.
-              </p>
+              <p className="l-desc">{t("l.demo.trilaDesc")}</p>
               <div className="l-mockchat">
                 <div className="l-mmsg">
                   <div className="l-mavatar l-mavatar-trila">T</div>
-                  <div className="l-mbubble in">Trila, fotosintez nədir? Başa düşmürəm.</div>
+                  <div className="l-mbubble in">{t("l.demo.trilaQ")}</div>
                 </div>
                 <div className="l-mmsg out">
                   <div className="l-mavatar l-mavatar-bot">
                     <i />
                   </div>
-                  <div className="l-mbubble out l-italic">
-                    Çox gözəl sualdır! Fotosintezi bir mətbəx kimi düşünək. Bitkilər günəş
-                    işığını aşpaz kimi istifadə edərək özlərinə yemək hazırlayırlar.
-                  </div>
+                  <div className="l-mbubble out l-italic">{t("l.demo.trilaA")}</div>
                 </div>
               </div>
             </motion.article>
@@ -281,8 +290,8 @@ export default function Landing() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5 }}
           >
-            <h2>5 model, bir platforma</h2>
-            <p>Hər model müəyyən bir iş üçün ixtisaslaşıb — ehtiyacına uyğun olanı seç, söhbət daxilində istənilən vaxt dəyiş.</p>
+            <h2>{t("l.models.head", { n: models.length || 8 })}</h2>
+            <p>{t("l.models.sub")}</p>
           </motion.div>
           <motion.div
             className="l-model-grid"
@@ -291,20 +300,22 @@ export default function Landing() {
             viewport={{ once: true, margin: "-60px" }}
             variants={stagger}
           >
-            {MODELS.map((m) => (
+            {models.map((m) => (
               <motion.a
-                key={m.name}
+                key={m.id}
                 href="/chat"
                 className="l-model-card"
                 variants={fadeUp}
                 whileHover={{ y: -4, boxShadow: "0 10px 28px rgba(0,0,0,.08)" }}
                 transition={{ duration: 0.2 }}
               >
-                <div className={`l-tag ${m.tagClass}`}>
-                  <span className="l-dot" /> {m.tag}
+                <div className="l-tag" style={{ color: m.color }}>
+                  <span className="l-dot" style={{ background: m.color }} /> {m.tag}
                 </div>
                 <h3>
-                  {m.name} {m.badge && <span className="l-badge">{m.badge}</span>}
+                  {m.name}{" "}
+                  {m.vision && <span className="l-badge">{t("l.models.badgeVision")}</span>}
+                  {m.agentTools && <span className="l-badge">{t("l.models.badgeAgent")}</span>}
                 </h3>
                 <p>{m.desc}</p>
               </motion.a>
@@ -323,28 +334,25 @@ export default function Landing() {
             transition={{ duration: 0.6, ease: EASE_OUT }}
           >
             <div className="l-tag l-tag-schala">
-              <span className="l-dot" /> Yeni · Masaüstü tətbiq
+              <span className="l-dot" /> {t("l.schala.badge")}
             </div>
             <h2>
-              Tanış olun: <strong>Schala</strong>
+              {t("l.schala.titlePre")}
+              <strong>Schala</strong>
             </h2>
-            <p className="l-desc">
-              Öz layihənizi açın, Schala fayllarınızı oxusun, dəyişiklik istəyəndə icazə soruşmadan
-              birbaşa koda yazsın. Fayl ağacı, real Monaco redaktoru, terminal və çoxfayllı
-              "Composer" rejimi — hamısı bir pəncərədə.
-            </p>
+            <p className="l-desc">{t("l.schala.desc")}</p>
             <ul className="l-schala-points">
-              <li>Faylı birbaşa redaktə edir, dəyişiklikləri həmişə geri ala bilərsiniz</li>
-              <li>Composer bir neçə faylı eyni anda yeniləyir</li>
-              <li>Daxili terminal, git statusu, sürətli fayl axtarışı (Ctrl+P)</li>
+              <li>{t("l.schala.p1")}</li>
+              <li>{t("l.schala.p2")}</li>
+              <li>{t("l.schala.p3")}</li>
             </ul>
             <div className="l-schala-actions">
               <a href="#download" className="l-btn l-btn-primary">
                 <DownloadIcon />
-                Schala-nı yüklə
+                {t("l.schala.dl")}
               </a>
               <a href="#demo" className="l-btn l-btn-ghost">
-                Demoya bax
+                {t("l.schala.demo")}
               </a>
             </div>
           </motion.div>
@@ -363,7 +371,7 @@ export default function Landing() {
                 <span className="l-schala-mockdot" />
                 <span className="l-schala-mock-title">Schala — my-project</span>
               </div>
-              <img src="/schala-preview.png" alt="Schala kod redaktoru interfeysi" loading="lazy" />
+              <img src="/schala-preview.png" alt={t("l.schala.shotAlt")} loading="lazy" />
             </div>
           </motion.div>
         </div>
@@ -379,10 +387,10 @@ export default function Landing() {
             transition={{ duration: 0.5 }}
           >
             <div className="l-tag l-tag-schala">
-              <span className="l-dot" /> Demo
+              <span className="l-dot" /> {t("l.vid.tag")}
             </div>
-            <h2>İş başında görün</h2>
-            <p>Schala real layihədə necə işləyir — fayl oxuyur, kod yazır və dəyişiklikləri birbaşa tətbiq edir.</p>
+            <h2>{t("l.vid.head")}</h2>
+            <p>{t("l.vid.sub")}</p>
           </motion.div>
 
           <motion.div
@@ -410,14 +418,14 @@ export default function Landing() {
             </video>
 
             {!playing && (
-              <button type="button" className="l-demo-play" onClick={handlePlay} aria-label="Demo videosunu oynat">
+              <button type="button" className="l-demo-play" onClick={handlePlay} aria-label={t("l.vid.aria")}>
                 <span className="l-demo-play-btn">
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </span>
                 <span className="l-demo-play-label">
-                  {demoUnavailable ? "Demo videosu tezliklə əlavə olunacaq" : "Demonu izləyin"}
+                  {demoUnavailable ? t("l.vid.unavailable") : t("l.vid.play")}
                 </span>
               </button>
             )}
@@ -434,8 +442,8 @@ export default function Landing() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5 }}
           >
-            <h2>Üç addımda başla</h2>
-            <p>Qeydiyyat, quraşdırma, gözləmə yoxdur — brauzerdə aç və dərhal işə başla.</p>
+            <h2>{t("l.how.head")}</h2>
+            <p>{t("l.how.sub")}</p>
           </motion.div>
           <motion.div
             className="l-how-grid"
@@ -464,8 +472,8 @@ export default function Landing() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5 }}
           >
-            <h2>Masaüstünə yükləyin</h2>
-            <p>Syncrom Vella və Schala müstəqil masaüstü tətbiqlər kimi mövcuddur — brauzer olmadan, birbaşa kompüterinizdə işləyir.</p>
+            <h2>{t("l.dl.head")}</h2>
+            <p>{t("l.dl.sub")}</p>
           </motion.div>
 
           {downloadPending && (
@@ -474,7 +482,7 @@ export default function Landing() {
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 8v4M12 16h.01" />
               </svg>
-              Quraşdırma paketi hazırlanır — tezliklə əlçatan olacaq. Bu arada Syncrom AI-ı brauzerdə istifadə edə bilərsiniz.
+              {t("l.dl.notice")}
             </div>
           )}
 
@@ -488,27 +496,24 @@ export default function Landing() {
             >
               <div className="l-dl-top">
                 <div className="l-dl-logo l-dl-logo-light">
-                  <img src="/vella-logo.png" alt="Syncrom Vella loqosu" />
+                  <img src="/vella-logo.png" alt={t("l.dl.vellaLogoAlt")} />
                 </div>
                 <div className="l-tag l-tag-vella">
-                  <span className="l-dot" /> B2B CRM & Satış
+                  <span className="l-dot" /> {models.find((m) => m.id === "vella-1.0")?.tag || "B2B CRM"}
                 </div>
               </div>
               <h3>Syncrom Vella</h3>
-              <p>
-                Satış komandaları üçün ayrıca masaüstü tətbiq. Lead qiymətləndirməsi (BANT),
-                korporativ analitika və müştəri ünsiyyəti — hamısı fokuslanmış, tək-model interfeysdə.
-              </p>
+              <p>{t("l.dl.vellaDesc")}</p>
               <ul className="l-dl-points">
-                <li>Login tələb olunmur — söhbətlər lokal saxlanılır</li>
-                <li>BANT lead-scoring & satış e-poçt şablonları</li>
-                <li>Korporativ tünd dizayn, offline işləyir</li>
+                <li>{t("l.dl.vellaP1")}</li>
+                <li>{t("l.dl.vellaP2")}</li>
+                <li>{t("l.dl.vellaP3")}</li>
               </ul>
               <a href="/downloads/Syncrom-Vella-Setup.exe" className="l-btn l-dl-btn l-dl-btn-vella" download>
                 <WindowsIcon />
-                Windows üçün yüklə
+                {t("l.dl.win")}
               </a>
-              <p className="l-dl-meta">Windows 10/11 · NSIS installer</p>
+              <p className="l-dl-meta">{t("l.dl.vellaMeta")}</p>
             </motion.div>
 
             <motion.div
@@ -520,27 +525,24 @@ export default function Landing() {
             >
               <div className="l-dl-top">
                 <div className="l-dl-logo l-dl-logo-dark">
-                  <img src="/schala-logo.png" alt="Schala loqosu" />
+                  <img src="/schala-logo.png" alt={t("l.dl.schalaLogoAlt")} />
                 </div>
                 <div className="l-tag l-tag-schala">
-                  <span className="l-dot" /> AI Kod Redaktoru
+                  <span className="l-dot" /> {t("l.dl.schalaTag")}
                 </div>
               </div>
               <h3>Schala</h3>
-              <p>
-                Öz AI cüt-proqramçınız. Real fayl sisteminə çıxış, Monaco redaktoru, daxili terminal
-                və çoxfayllı Composer — Keyla 5.8 modeli ilə gücləndirilib.
-              </p>
+              <p>{t("l.dl.schalaDesc")}</p>
               <ul className="l-dl-points">
-                <li>Fayllarınızı oxuyur və birbaşa redaktə edir</li>
-                <li>Git statusu, Ctrl+P sürətli axtarış, terminal</li>
-                <li>Composer bir neçə faylı eyni anda dəyişir</li>
+                <li>{t("l.dl.schalaP1")}</li>
+                <li>{t("l.dl.schalaP2")}</li>
+                <li>{t("l.dl.schalaP3")}</li>
               </ul>
               <a href="/downloads/Schala-Setup.exe" className="l-btn l-dl-btn l-dl-btn-schala" download>
                 <WindowsIcon />
-                Windows üçün yüklə
+                {t("l.dl.win")}
               </a>
-              <p className="l-dl-meta">Windows 10/11 · Electron</p>
+              <p className="l-dl-meta">{t("l.dl.schalaMeta")}</p>
             </motion.div>
           </div>
         </div>
@@ -555,8 +557,8 @@ export default function Landing() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5 }}
           >
-            <h2>Etibarlı, sürətli və dilimizə uyğun</h2>
-            <p>Syncrom AI modelləri Azərbaycan dilinin incəliklərini başa düşmək və təbii ünsiyyət qurmaq üçün hazırlanmışdır.</p>
+            <h2>{t("l.feat.head")}</h2>
+            <p>{t("l.feat.sub")}</p>
           </motion.div>
           <motion.div
             className="l-feature-grid"
@@ -594,8 +596,8 @@ export default function Landing() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5 }}
           >
-            <h2>Tez-tez verilən suallar</h2>
-            <p>Ağlına gələn ilk suallar — qısa və aydın cavablarla.</p>
+            <h2>{t("l.faq.head")}</h2>
+            <p>{t("l.faq.sub")}</p>
           </motion.div>
           <motion.div
             className="l-faq-list"
@@ -626,14 +628,14 @@ export default function Landing() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5 }}
           >
-            <h2>Gələcəyi bu gün kəşf edin</h2>
-            <p>Alina, Keyla, Vella və Trila ilə tanış olun — sizin və komandanız üçün hazır süni zəka köməkçiləri.</p>
+            <h2>{t("l.cta.head")}</h2>
+            <p>{t("l.cta.sub")}</p>
             <div className="l-cta-actions">
               <a href="/chat" className="l-btn-light">
-                Hesab yaradın
+                {t("l.cta.account")}
               </a>
               <a href="mailto:syncromai@gmail.com" className="l-btn-outline-light">
-                Bizimlə əlaqə
+                {t("l.cta.contact")}
               </a>
             </div>
           </motion.div>
@@ -649,11 +651,11 @@ export default function Landing() {
               </span>
               <span>Syncrom AI</span>
             </div>
-            <p>Bakı, Azərbaycan. Bütün hüquqlar qorunur. Syncrom AI zəka modelləri tərəfindən idarə olunur.</p>
+            <p>{t("l.foot.address")}</p>
           </div>
           <div className="l-foot-cols">
             <div>
-              <h4>Məhsul</h4>
+              <h4>{t("l.foot.product")}</h4>
               <a href="#models">Alina 1.6 / 1.7</a>
               <a href="#all-models">Keyla 5.8</a>
               <a href="#all-models">Syncrom Vella</a>
@@ -661,16 +663,16 @@ export default function Landing() {
               <a href="#schala">Schala</a>
             </div>
             <div>
-              <h4>Yüklə</h4>
+              <h4>{t("l.foot.download")}</h4>
               <a href="#download">Syncrom Vella</a>
               <a href="#download">Schala</a>
-              <a href="#demo">Demo</a>
+              <a href="#demo">{t("l.vid.tag")}</a>
             </div>
             <div>
-              <h4>Şirkət</h4>
-              <a href="#how">Necə başlamalı</a>
-              <a href="#faq">FAQ</a>
-              <a href="mailto:syncromai@gmail.com">Əlaqə</a>
+              <h4>{t("l.foot.company")}</h4>
+              <a href="#how">{t("l.foot.howTo")}</a>
+              <a href="#faq">{t("l.nav.faq")}</a>
+              <a href="mailto:syncromai@gmail.com">{t("l.foot.contact")}</a>
             </div>
           </div>
         </div>

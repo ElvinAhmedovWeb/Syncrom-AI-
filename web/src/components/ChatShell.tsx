@@ -6,10 +6,13 @@ import Topbar from "./Topbar";
 import ModelPicker from "./ModelPicker";
 import MessageBubble, { TypingIndicator } from "./MessageBubble";
 import Composer from "./Composer";
+import ArtifactPanel, { type Artifact } from "./ArtifactPanel";
 import { useChatController } from "../hooks/useChatController";
 import { useSpeechInput } from "../lib/useSpeechInput";
 import { EASE_OUT } from "../lib/motion";
 import { downloadChat } from "../lib/export";
+import { useT } from "../lib/i18n";
+import type { MemoryFact, MemoryStore } from "../lib/memory";
 import type { ChatStorage } from "../lib/storage";
 
 const fadeUp = {
@@ -28,6 +31,27 @@ interface Suggestion {
   icon?: ReactNode;
 }
 
+// Yan panelin altlığı (profil kartı) söhbət idarəçisinin bəzi
+// əməliyyatlarına ehtiyac duyur (ixrac, hamısını silmə, tünd rejim), amma
+// altlıq səhifə tərəfindən verilir. Ona görə ReactNode-dan başqa funksiya
+// da qəbul edirik — funksiya bu API-ni alır.
+export interface ShellFooterApi {
+  exportChat: () => void;
+  clearAllChats: () => Promise<void>;
+  hasMessages: boolean;
+  hasChats: boolean;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
+  memory: {
+    facts: MemoryFact[];
+    enabled: boolean;
+    add: (text: string) => void;
+    remove: (id: string) => void;
+    clear: () => void;
+    toggle: () => void;
+  };
+}
+
 interface Props {
   theme: "syncrom" | "vella";
   logoSrc: string;
@@ -38,9 +62,10 @@ interface Props {
   suggestions: Suggestion[];
   fixedModelId?: string;
   storage: ChatStorage;
+  memoryStore?: MemoryStore;
   userName?: string | null;
   storageKeyForModel?: string;
-  sidebarFooter?: ReactNode;
+  sidebarFooter?: ReactNode | ((api: ShellFooterApi) => ReactNode);
   linkTo?: { href: string; label: string };
   inputPlaceholder: string;
   hint: string;
@@ -57,6 +82,7 @@ export default function ChatShell({
   suggestions,
   fixedModelId,
   storage,
+  memoryStore,
   userName,
   storageKeyForModel,
   sidebarFooter,
@@ -65,10 +91,12 @@ export default function ChatShell({
   hint,
   imageGenEnabled,
 }: Props) {
-  const ctrl = useChatController({ storage, fixedModelId, userName, storageKeyForModel });
+  const t = useT();
+  const ctrl = useChatController({ storage, fixedModelId, userName, storageKeyForModel, memoryStore });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [darkMode, setDarkMode] = useState(() => theme === "syncrom" && localStorage.getItem("syncrom_dark") === "1");
 
   const effectiveTheme = theme === "syncrom" && darkMode ? "syncrom-dark" : theme;
@@ -93,7 +121,10 @@ export default function ChatShell({
 
   const activeModel = ctrl.models.find((m) => m.id === ctrl.currentModelId);
   const visionEnabled = fixedModelId ? false : !!activeModel?.vision;
-  const agentToolsEnabled = fixedModelId ? false : !!activeModel?.agentTools;
+  // Alətlər (execute_code / web_search / read_url) artıq bütün modellərdə
+  // işləyir — əvvəl yalnız agentTools bayrağı olan modellərdə (Keyla) idi.
+  // Vella kimi tək-model səthlərində interfeys sadə qalır.
+  const agentToolsEnabled = !fixedModelId && ctrl.models.length > 0;
 
   function doSend(text?: string) {
     const value = (text ?? input).trim();
@@ -113,6 +144,28 @@ export default function ChatShell({
 
   const messages = ctrl.currentChat?.messages ?? [];
   const showWelcome = messages.length === 0 && ctrl.streamDraft === null;
+
+  const exportChat = () => ctrl.currentChat && downloadChat(ctrl.currentChat);
+
+  const footerNode =
+    typeof sidebarFooter === "function"
+      ? sidebarFooter({
+          exportChat,
+          clearAllChats: ctrl.clearAllChats,
+          hasMessages: messages.length > 0,
+          hasChats: ctrl.chats.length > 0,
+          darkMode: theme === "syncrom" ? darkMode : undefined,
+          onToggleDarkMode: theme === "syncrom" ? toggleDarkMode : undefined,
+          memory: {
+            facts: ctrl.memories,
+            enabled: ctrl.memoryOn,
+            add: ctrl.addMemory,
+            remove: ctrl.deleteMemory,
+            clear: ctrl.clearMemories,
+            toggle: ctrl.toggleMemory,
+          },
+        })
+      : sidebarFooter;
 
   return (
     <div className="app-shell" data-theme={effectiveTheme}>
@@ -137,7 +190,7 @@ export default function ChatShell({
         }}
         onDeleteChat={ctrl.deleteChat}
         onRenameChat={ctrl.renameChat}
-        footer={sidebarFooter}
+        footer={footerNode}
         darkMode={theme === "syncrom" ? darkMode : undefined}
         onToggleDarkMode={theme === "syncrom" ? toggleDarkMode : undefined}
       />
@@ -159,8 +212,8 @@ export default function ChatShell({
                 <motion.button
                   type="button"
                   className="toggle-btn"
-                  title="Söhbəti ixrac et (.md)"
-                  onClick={() => ctrl.currentChat && downloadChat(ctrl.currentChat)}
+                  title={t("top.exportTitle")}
+                  onClick={exportChat}
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.96 }}
                   transition={{ duration: 0.15 }}
@@ -170,13 +223,13 @@ export default function ChatShell({
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  <span>İxrac et</span>
+                  <span>{t("top.export")}</span>
                 </motion.button>
               )}
               <motion.button
                 type="button"
                 className={`toggle-btn${ctrl.autoSpeak ? " active" : ""}`}
-                title="Avtomatik səsləndirmə"
+                title={t("top.autoSpeakTitle")}
                 onClick={ctrl.toggleAutoSpeak}
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.96 }}
@@ -186,7 +239,7 @@ export default function ChatShell({
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
                 </svg>
-                <span>Avto səs</span>
+                <span>{t("top.autoSpeak")}</span>
               </motion.button>
             </>
           }
@@ -203,7 +256,7 @@ export default function ChatShell({
               {activeModel && (
                 <motion.p className="model-pill-note" variants={fadeUp}>
                   <span className="m-dot" style={{ background: activeModel.color, color: activeModel.color }} />
-                  Aktiv model: <b>{activeModel.name}</b> — {activeModel.tag}
+                  {t("welcome.activeModel")}: <b>{activeModel.name}</b> — {activeModel.tag}
                 </motion.p>
               )}
               <motion.div className="suggestions" variants={stagger}>
@@ -238,17 +291,33 @@ export default function ChatShell({
                     onSpeak={() => ctrl.speak(m.content, key)}
                     onRegenerate={ctrl.regenerate}
                     onEdit={m.role === "user" && !ctrl.busy ? () => handleEdit(i) : undefined}
+                    onOpenArtifact={setArtifact}
                     speakState={ctrl.speaking?.key === key ? ctrl.speaking.state : "idle"}
+                    // Addımlar və davam sualları yalnız SON cavaba aiddir
+                    steps={isLastAssistant ? ctrl.agentSteps : undefined}
+                    followups={isLastAssistant && !ctrl.busy ? ctrl.followups : undefined}
+                    onFollowup={(q) => doSend(q)}
                   />
                 );
               })}
               {ctrl.streamDraft !== null &&
                 (ctrl.streamDraft === "" ? (
-                  <TypingIndicator logoSrc={logoSrc} />
+                  <>
+                    {ctrl.agentSteps.length > 0 && (
+                      <MessageBubble
+                        message={{ role: "assistant", content: "" }}
+                        logoSrc={logoSrc}
+                        steps={ctrl.agentSteps}
+                      />
+                    )}
+                    <TypingIndicator logoSrc={logoSrc} />
+                  </>
                 ) : (
                   <MessageBubble
                     message={{ role: "assistant", content: ctrl.streamDraft }}
                     logoSrc={logoSrc}
+                    steps={ctrl.agentSteps}
+                    onOpenArtifact={setArtifact}
                     streaming
                   />
                 ))}
@@ -281,10 +350,53 @@ export default function ChatShell({
           agentToolsEnabled={agentToolsEnabled}
           agentModeActive={ctrl.agentMode}
           onToggleAgentMode={ctrl.toggleAgentMode}
-          hint={ctrl.imageGenMode ? "Şəkil yaratma rejimi aktivdir — nə istədiyini təsvir et" : hint}
-          placeholder={ctrl.imageGenMode ? "Hansı şəkli yaratmaq istəyirsən? (məs: gün batımında dağlar)" : inputPlaceholder}
+          webSearchActive={ctrl.webSearchMode}
+          onToggleWebSearch={ctrl.toggleWebSearch}
+          translateActive={ctrl.translateMode}
+          onToggleTranslate={ctrl.toggleTranslate}
+          translateTo={ctrl.translateTo}
+          onSelectTranslateTo={ctrl.selectTranslateTo}
+          hint={
+            ctrl.translateMode
+              ? t("composer.hintTranslate")
+              : ctrl.imageGenMode
+                ? t("composer.hintImageGen")
+                : hint
+          }
+          placeholder={
+            ctrl.translateMode
+              ? t("composer.placeholderTranslate")
+              : ctrl.imageGenMode
+                ? t("composer.placeholderImageGen")
+                : inputPlaceholder
+          }
         />
       </motion.div>
+
+      {/* Yaddaşa nə yazıldığını istifadəçi görməlidir — arxada sükutla
+          profil yığmaq yox, hər dəfə açıq bildiriş. */}
+      {ctrl.memorySaved && (
+        <motion.div
+          className="mem-toast"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: EASE_OUT }}
+          role="status"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+          </svg>
+          <span className="mem-toast-text">
+            <b>{t("mem.saved")}</b>
+            <small>{ctrl.memorySaved}</small>
+          </span>
+          <button type="button" onClick={ctrl.dismissMemoryToast} aria-label={t("art.close")}>
+            ×
+          </button>
+        </motion.div>
+      )}
+
+      {artifact && <ArtifactPanel artifact={artifact} onClose={() => setArtifact(null)} />}
     </div>
   );
 }

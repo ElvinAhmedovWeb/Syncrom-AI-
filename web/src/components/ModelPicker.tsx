@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { EASE_OUT } from "../lib/motion";
+import { useT } from "../lib/i18n";
 import type { ModelInfo } from "../types";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function ModelPicker({ models, currentId, onSelect }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const current = models.find((m) => m.id === currentId) ?? models[0];
@@ -64,7 +66,7 @@ export default function ModelPicker({ models, currentId, onSelect }: Props) {
               <span className="m-info">
                 <span className="m-name">
                   {m.name}
-                  {m.vision && <span title="Şəkil analizi">📷</span>}
+                  {m.vision && <span title={t("plus.imageSub")}>📷</span>}
                 </span>
                 <span className="m-tag">
                   {m.tag} · {m.desc}

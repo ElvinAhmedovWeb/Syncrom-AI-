@@ -402,6 +402,593 @@
   background: var(--accent-soft);
 }
 
+.user-card-menu {
+  /* Dil altmenyusu ilə birlikdə uzun ola bilər */
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.uc-item-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.uc-item-value {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.uc-chevron {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  transition: transform 0.2s;
+}
+
+.uc-chevron.open {
+  transform: rotate(90deg);
+}
+
+.uc-sep {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--border-soft);
+}
+
+.uc-sub {
+  overflow: hidden;
+  margin: 2px 2px 4px;
+  padding: 4px;
+  border-radius: 9px;
+  background: var(--bg-input);
+}
+
+.user-card-menu .uc-sub button {
+  padding: 7px 9px;
+  font-size: 0.76rem;
+  justify-content: space-between;
+}
+
+.user-card-menu .uc-sub button.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.user-card-menu button.uc-danger {
+  color: #e11d48;
+}
+
+.user-card-menu button.uc-danger:hover {
+  background: rgba(225, 29, 72, 0.12);
+}
+
+.user-card-menu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.user-card-menu button:disabled:hover {
+  background: none;
+}
+
+/* ---------- Kod Köməkçisinin alət addımları ---------- */
+.agent-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--bg-input);
+}
+
+.agent-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  min-width: 0;
+}
+
+.agent-step.done .agent-step-icon {
+  color: #16a34a;
+}
+
+.agent-step.failed .agent-step-icon {
+  color: #e11d48;
+}
+
+.agent-step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.agent-step-label {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.agent-step-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Consolas, "Cascadia Code", monospace;
+  font-size: 0.68rem;
+  opacity: 0.75;
+}
+
+.agent-spin {
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: agent-spin 0.7s linear infinite;
+}
+
+@keyframes agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Davam sualları ---------- */
+.followups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.followups-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.followup-chip {
+  padding: 6px 11px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.followup-chip:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* ---------- Artefakt paneli (canlı HTML/SVG) ---------- */
+.art-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.art-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(680px, 100%);
+  height: 100%;
+  background: var(--bg-panel-solid);
+  border-left: 1px solid var(--border-soft);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.35);
+}
+
+.art-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.art-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--bg-input);
+}
+
+.art-tab {
+  padding: 5px 13px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.art-tab.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.art-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.art-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.art-icon-btn:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.art-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.art-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
+}
+
+.art-code {
+  flex: 1;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: Consolas, "Cascadia Code", monospace;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+@media (max-width: 560px) {
+  .art-panel {
+    width: 100%;
+  }
+}
+
+/* ---------- Yaddaş bildirişi ---------- */
+.mem-toast {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(440px, calc(100vw - 28px));
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 13px;
+  background: var(--bg-panel-solid);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+  color: var(--accent);
+}
+
+.mem-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mem-toast-text b {
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+.mem-toast-text small {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.mem-toast button {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mem-toast button:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* ---------- Yaddaş pəncərəsi ---------- */
+.mem-dialog {
+  max-width: 460px;
+}
+
+.mem-sub {
+  margin: 0 0 14px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.mem-switch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-soft);
+  border-radius: 11px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mem-switch-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--border-soft);
+  transition: background 0.2s;
+}
+
+.mem-switch.on .mem-switch-track {
+  background: var(--accent);
+}
+
+.mem-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+
+.mem-switch.on .mem-switch-knob {
+  transform: translateX(15px);
+}
+
+.mem-empty {
+  margin: 0 0 14px;
+  padding: 18px 12px;
+  border: 1px dashed var(--border-soft);
+  border-radius: 11px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.mem-list {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mem-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--bg-input);
+}
+
+.mem-item-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.79rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.mem-item-del {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mem-item-del:hover {
+  background: rgba(225, 29, 72, 0.14);
+  color: #e11d48;
+}
+
+.mem-add {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mem-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.79rem;
+}
+
+.mem-add input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.mem-add button {
+  flex-shrink: 0;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mem-add button:disabled,
+.mem-add input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mem-count {
+  margin: 0 0 12px;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.mem-wipe {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid rgba(225, 29, 72, 0.4);
+  border-radius: 11px;
+  background: none;
+  color: #e11d48;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mem-wipe:hover {
+  background: rgba(225, 29, 72, 0.1);
+}
+
+/* ---------- "Syncrom AI haqqında" pəncərəsi ---------- */
+.about-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.about-dialog {
+  width: 100%;
+  max-width: 400px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 22px;
+  border-radius: 18px;
+  background: var(--bg-panel-solid);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+
+.about-dialog h3 {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.about-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+.about-row dt {
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.about-row dd {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.about-close {
+  width: 100%;
+  margin-top: 18px;
+  padding: 10px;
+  border: none;
+  border-radius: 11px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .user-avatar {
   width: 32px;
   height: 32px;
@@ -812,13 +1399,15 @@
 .code-block-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   padding: 7px 8px 7px 14px;
   background: rgba(255, 255, 255, 0.04);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .code-lang {
+  /* Düymələri sağa sıxır — başlıqda dil + Önizləmə + Kopyala ola bilər */
+  margin-right: auto;
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -845,6 +1434,27 @@
   color: #f5f5f5;
   border-color: rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.06);
+}
+
+/* HTML/SVG bloklarında canlı önizləmə düyməsi */
+.code-preview-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--accent);
+  border: 1px solid transparent;
+  color: var(--on-accent);
+  font-size: 0.7rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.code-preview-btn:hover {
+  filter: brightness(1.12);
 }
 
 .code-block pre {
@@ -1199,6 +1809,10 @@
   padding: 6px;
   z-index: 20;
   box-shadow: 0 -20px 55px rgba(0, 0, 0, 0.5);
+  /* Dil altmenyusu açılanda menyu ekrandan çıxmasın */
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .plus-menu-item {
@@ -1262,6 +1876,69 @@
   color: var(--accent);
   font-size: 0.85rem;
   flex-shrink: 0;
+}
+
+.plus-menu-chevron {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  transition: transform 0.2s;
+}
+
+.plus-menu-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* ---------- "+" menyusunun altmenyusu (tərcümə dilləri) ---------- */
+.plus-submenu {
+  overflow: hidden;
+  margin: 2px 0 4px;
+  padding: 4px;
+  border-radius: 11px;
+  background: var(--bg-input);
+}
+
+.plus-submenu-label {
+  margin: 2px 6px 5px;
+  font-size: 0.63rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.plus-submenu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.plus-submenu-item:hover {
+  background: var(--accent-soft);
+}
+
+.plus-submenu-item.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.plus-submenu-item.off {
+  margin-top: 3px;
+  border-top: 1px solid var(--border-soft);
+  border-radius: 0 0 8px 8px;
+  color: var(--text-dim);
+  justify-content: center;
 }
 
 /* ---------- Aktiv rejim etiketləri (Deep Think / Şəkil yarat) ---------- */
@@ -1569,6 +2246,41 @@
   padding: 20px;
   overflow-y: auto;
   background: var(--bg);
+}
+
+.auth-langs {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--bg-input);
+}
+
+.auth-lang {
+  padding: 5px 9px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.auth-lang:hover {
+  color: var(--text);
+  background: var(--accent-soft);
+}
+
+.auth-lang.active {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .auth-card {

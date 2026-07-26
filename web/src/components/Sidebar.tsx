@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
+import { useI18n, type TFunc } from "../lib/i18n";
+import { isUntitled } from "../hooks/useChatController";
 import type { Chat, ModelInfo } from "../types";
 
 interface Props {
@@ -20,17 +22,17 @@ interface Props {
   onToggleDarkMode?: () => void;
 }
 
-function relativeTime(ts: number): string {
+function relativeTime(ts: number, t: TFunc, locale: string): string {
   const diffMs = Date.now() - ts;
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "indi";
-  if (mins < 60) return `${mins} dəq əvvəl`;
+  if (mins < 1) return t("time.now");
+  if (mins < 60) return t("time.minsAgo", { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return hours === 1 ? "1 saat əvvəl" : `${hours} saat əvvəl`;
+  if (hours < 24) return hours === 1 ? t("time.hourAgo") : t("time.hoursAgo", { n: hours });
   const days = Math.floor(hours / 24);
-  if (days === 1) return "Dünən";
-  if (days < 7) return `${days} gün əvvəl`;
-  return new Date(ts).toLocaleDateString("az-AZ");
+  if (days === 1) return t("time.yesterday");
+  if (days < 7) return t("time.daysAgo", { n: days });
+  return new Date(ts).toLocaleDateString(locale);
 }
 
 export default function Sidebar({
@@ -50,6 +52,7 @@ export default function Sidebar({
   darkMode,
   onToggleDarkMode,
 }: Props) {
+  const { t, locale } = useI18n();
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -134,14 +137,14 @@ export default function Sidebar({
           />
         ) : (
           <>
-            <span className="chat-item-title">{c.title || "Yeni söhbət"}</span>
-            <span className="chat-item-time">{relativeTime(c.updatedAt)}</span>
+            <span className="chat-item-title">{isUntitled(c.title) ? t("sidebar.newChat") : c.title}</span>
+            <span className="chat-item-time">{relativeTime(c.updatedAt, t, locale)}</span>
           </>
         )}
         <button
           type="button"
           className="chat-rename"
-          title="Adını dəyiş"
+          title={t("sidebar.rename")}
           onClick={(e) => {
             e.stopPropagation();
             startRename(c);
@@ -155,7 +158,7 @@ export default function Sidebar({
         <button
           type="button"
           className={`chat-del${confirming ? " confirm" : ""}`}
-          title={confirming ? "Silinsin?" : "Sil"}
+          title={confirming ? t("sidebar.deleteConfirm") : t("sidebar.delete")}
           onClick={(e) => {
             e.stopPropagation();
             if (c.id) handleDeleteClick(c.id);
@@ -189,7 +192,7 @@ export default function Sidebar({
             <h1>{brandName}</h1>
             <p>{brandSub}</p>
           </div>
-          <button type="button" className="sidebar-collapse-btn" title="Paneli bağla" onClick={onClose}>
+          <button type="button" className="sidebar-collapse-btn" title={t("sidebar.close")} onClick={onClose}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="21" y2="6" />
               <line x1="3" y1="12" x2="21" y2="12" />
@@ -210,7 +213,7 @@ export default function Sidebar({
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          <span>Yeni söhbət</span>
+          <span>{t("sidebar.newChat")}</span>
         </motion.button>
 
         {chats.length > 0 && (
@@ -222,7 +225,7 @@ export default function Sidebar({
             <input
               ref={searchRef}
               type="text"
-              placeholder="Söhbətlərdə axtar..."
+              placeholder={t("sidebar.search")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -233,18 +236,18 @@ export default function Sidebar({
         <div className="chat-list">
           {chats.length === 0 ? (
             <>
-              <p className="section-label">Söhbətlər</p>
-              <div className="chat-empty">Hələ söhbət yoxdur</div>
+              <p className="section-label">{t("sidebar.chats")}</p>
+              <div className="chat-empty">{t("sidebar.empty")}</div>
             </>
           ) : isSearching ? (
             filteredChats.length === 0 ? (
-              <div className="chat-empty">Uyğun söhbət tapılmadı</div>
+              <div className="chat-empty">{t("sidebar.noMatch")}</div>
             ) : (
               filteredChats.map((c) => renderChatItem(c))
             )
           ) : (
             <>
-              <p className="section-label">Söhbətlər</p>
+              <p className="section-label">{t("sidebar.chats")}</p>
               {filteredChats.map((c) => renderChatItem(c))}
             </>
           )}
@@ -271,7 +274,7 @@ export default function Sidebar({
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             )}
-            <span>{darkMode ? "Light mode" : "Dark mode"}</span>
+            <span>{darkMode ? t("sidebar.lightMode") : t("sidebar.darkMode")}</span>
           </button>
         )}
       </motion.aside>

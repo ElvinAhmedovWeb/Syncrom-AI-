@@ -1,7 +1,10 @@
-import type { MouseEvent } from "react";
+import { useMemo, type MouseEvent } from "react";
 import { motion } from "framer-motion";
-import { renderMarkdown } from "../lib/markdown";
+import { renderMarkdown, type ArtifactKind } from "../lib/markdown";
 import { EASE_OUT } from "../lib/motion";
+import { useT, type TFunc, type TKey } from "../lib/i18n";
+import type { AgentStep } from "../lib/api";
+import type { Artifact } from "./ArtifactPanel";
 import type { ChatMessage } from "../types";
 
 interface Props {
@@ -13,22 +16,77 @@ interface Props {
   onSpeak?: () => void;
   onRegenerate?: () => void;
   onEdit?: () => void;
+  onOpenArtifact?: (a: Artifact) => void;
   speakState?: "idle" | "loading" | "playing";
+  /** Kod Köməkçisinin canlı alət addımları (yalnız axın gedərkən) */
+  steps?: AgentStep[];
+  followups?: string[];
+  onFollowup?: (q: string) => void;
 }
 
-async function handleCodeCopyClick(e: MouseEvent<HTMLSpanElement>) {
-  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".code-copy-btn");
+// Kod blokundaki düymələr markdown-dan XAM HTML kimi gəlir (React elementi
+// deyil), ona görə kliklər qabarcığın üzərində bir dələgə ilə tutulur.
+async function handleBubbleClick(
+  e: MouseEvent<HTMLSpanElement>,
+  t: TFunc,
+  onOpenArtifact?: (a: Artifact) => void
+) {
+  const target = e.target as HTMLElement;
+
+  const previewBtn = target.closest<HTMLButtonElement>(".code-preview-btn");
+  if (previewBtn) {
+    const encoded = previewBtn.dataset.code;
+    const kind = previewBtn.dataset.kind as ArtifactKind | undefined;
+    if (encoded && kind && onOpenArtifact) {
+      onOpenArtifact({ kind, code: decodeURIComponent(encoded) });
+    }
+    return;
+  }
+
+  const btn = target.closest<HTMLButtonElement>(".code-copy-btn");
   if (!btn) return;
   const encoded = btn.dataset.code;
   if (!encoded) return;
   try {
     await navigator.clipboard.writeText(decodeURIComponent(encoded));
     const original = btn.textContent;
-    btn.textContent = "✓ Kopyalandı";
+    btn.textContent = t("msg.copied");
     setTimeout(() => (btn.textContent = original), 1500);
   } catch {
-    btn.textContent = "Alınmadı";
+    btn.textContent = t("msg.copyFailed");
   }
+}
+
+function StepList({ steps }: { steps: AgentStep[] }) {
+  const t = useT();
+  if (!steps.length) return null;
+  return (
+    <div className="agent-steps">
+      {steps.map((s, i) => {
+        const key = `step.${s.tool}` as TKey;
+        const label = t(key);
+        return (
+          <div key={i} className={`agent-step ${s.status}`}>
+            <span className="agent-step-icon" aria-hidden="true">
+              {s.status === "running" ? (
+                <span className="agent-spin" />
+              ) : s.status === "failed" ? (
+                "×"
+              ) : (
+                "✓"
+              )}
+            </span>
+            <span className="agent-step-label">
+              {/* Açar lüğətdə yoxdursa t() açarın özünü qaytarır — o halda alət adını göstər */}
+              {label === key ? s.tool : label}
+              {s.status === "failed" && ` — ${t("step.failed")}`}
+            </span>
+            {s.detail && <span className="agent-step-detail">{s.detail}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function MessageBubble({
@@ -40,10 +98,19 @@ export default function MessageBubble({
   onSpeak,
   onRegenerate,
   onEdit,
+  onOpenArtifact,
   speakState = "idle",
+  steps,
+  followups,
+  onFollowup,
 }: Props) {
+  const t = useT();
   const isUser = message.role === "user";
   const userAvatarStyle = accentColor ? { background: accentColor + "1f", color: accentColor } : undefined;
+
+  // Markdown hər simvol axını ilə yenidən qurulur — etiketlər sabit olduğu
+  // üçün onları memoladıq ki, hər render-də yeni obyekt yaranmasın.
+  const mdLabels = useMemo(() => ({ copy: t("msg.copy"), preview: t("art.preview") }), [t]);
 
   return (
     <motion.div
@@ -63,15 +130,18 @@ export default function MessageBubble({
         )}
       </div>
       <div className="bubble-col">
+        {!isUser && steps && steps.length > 0 && <StepList steps={steps} />}
         <div className="bubble">
-          {message.image && <img className="msg-image" src={message.image} alt="Göndərilən şəkil" />}
+          {message.image && <img className="msg-image" src={message.image} alt={t("msg.sentImage")} />}
           {isUser ? (
             message.content && <p>{message.content}</p>
           ) : (
             <span
-              onClick={handleCodeCopyClick}
+              onClick={(e) => void handleBubbleClick(e, t, onOpenArtifact)}
               dangerouslySetInnerHTML={{
-                __html: renderMarkdown(message.content) + (streaming ? '<span class="caret"></span>' : ""),
+                __html:
+                  renderMarkdown(message.content, mdLabels) +
+                  (streaming ? '<span class="caret"></span>' : ""),
               }}
             />
           )}
@@ -83,31 +153,46 @@ export default function MessageBubble({
                 <path d="M12 20h9" />
                 <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
-              Redaktə et
+              {t("msg.edit")}
             </button>
           </div>
         )}
         {!isUser && message.content && (
           <div className="msg-actions">
             <button className={`action-btn${speakState !== "idle" ? " playing" : ""}`} onClick={onSpeak}>
-              {speakState === "loading" && "… Yüklənir"}
+              {speakState === "loading" && `… ${t("msg.loading")}`}
               {speakState === "playing" && (
                 <>
                   <span className="eq">
                     <i /><i /><i /><i />
                   </span>{" "}
-                  Dayandır
+                  {t("msg.stopSpeak")}
                 </>
               )}
-              {speakState === "idle" && "▶ Səsləndir"}
+              {speakState === "idle" && `▶ ${t("msg.speak")}`}
             </button>
             <CopyButton text={message.content} />
             {withRegen && (
               <button className="action-btn" onClick={onRegenerate}>
-                ↻ Yenidən
+                ↻ {t("msg.regenerate")}
               </button>
             )}
           </div>
+        )}
+        {!isUser && followups && followups.length > 0 && onFollowup && (
+          <motion.div
+            className="followups"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: EASE_OUT }}
+          >
+            <span className="followups-label">{t("follow.label")}</span>
+            {followups.map((q) => (
+              <button key={q} type="button" className="followup-chip" onClick={() => onFollowup(q)}>
+                {q}
+              </button>
+            ))}
+          </motion.div>
         )}
       </div>
     </motion.div>
@@ -115,6 +200,7 @@ export default function MessageBubble({
 }
 
 function CopyButton({ text }: { text: string }) {
+  const t = useT();
   return (
     <button
       className="action-btn"
@@ -122,14 +208,14 @@ function CopyButton({ text }: { text: string }) {
         const btn = e.currentTarget;
         try {
           await navigator.clipboard.writeText(text);
-          btn.textContent = "✓ Kopyalandı";
+          btn.textContent = t("msg.copied");
         } catch {
-          btn.textContent = "Alınmadı";
+          btn.textContent = t("msg.copyFailed");
         }
-        setTimeout(() => (btn.textContent = "Kopyala"), 1500);
+        setTimeout(() => (btn.textContent = t("msg.copy")), 1500);
       }}
     >
-      Kopyala
+      {t("msg.copy")}
     </button>
   );
 }

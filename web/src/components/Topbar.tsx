@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useT } from "../lib/i18n";
 
 interface Props {
   onMenuClick: () => void;
@@ -9,9 +10,10 @@ interface Props {
 }
 
 export default function Topbar({ onMenuClick, busy, statusText, actions, linkTo }: Props) {
+  const t = useT();
   return (
     <header className="topbar">
-      <button type="button" className="menu-btn" title="Menyu" onClick={onMenuClick}>
+      <button type="button" className="menu-btn" title={t("sidebar.menu")} onClick={onMenuClick}>
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <line x1="3" y1="6" x2="21" y2="6" />
           <line x1="3" y1="12" x2="21" y2="12" />
