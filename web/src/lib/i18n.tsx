@@ -196,6 +196,7 @@ const azCore = {
   "about.close": "Bağla",
 
   // ---------- Artefakt (canlı önizləmə) ----------
+  "model.others": "Digər modellər",
   "img.aspect": "Nisbət",
   "img.square": "Kvadrat (1:1)",
   "img.landscape": "Geniş (16:9)",
@@ -382,6 +383,7 @@ const enCore = {
   "about.models": "Models",
   "about.close": "Close",
 
+  "model.others": "Other models",
   "img.aspect": "Aspect ratio",
   "img.square": "Square (1:1)",
   "img.landscape": "Wide (16:9)",
@@ -559,6 +561,7 @@ const ruCore = {
   "about.models": "Модели",
   "about.close": "Закрыть",
 
+  "model.others": "Другие модели",
   "img.aspect": "Соотношение",
   "img.square": "Квадрат (1:1)",
   "img.landscape": "Широкий (16:9)",
@@ -736,6 +739,7 @@ const trCore = {
   "about.models": "Modeller",
   "about.close": "Kapat",
 
+  "model.others": "Diğer modeller",
   "img.aspect": "Oran",
   "img.square": "Kare (1:1)",
   "img.landscape": "Geniş (16:9)",

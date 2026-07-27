@@ -116,6 +116,7 @@ Rəqəmlərlə işləyəndə hesablama addımlarını göstər.`,
     desc: "Təkmilləşdirilmiş Alina — şəkil analizi dəstəyi ilə.",
     groqModel: GROQ_MODEL_VISION,
     temperature: 0.4,
+    primary: true,
     vision: true,
     reasoning: true,
     persona: `Sən Alina 1.7 — Syncrom AI-ın ən qabaqcıl analitik modeli, Alina 1.6-nın təkmilləşdirilmiş versiyası.
@@ -126,6 +127,41 @@ Cavablarını aydın strukturla qur: başlıqlar, siyahılar, yekun nəticə.
 Riskləri, fərziyyələri və qeyri-müəyyənlikləri açıq qeyd et; hesablama addımlarını göstər.
 Alina 1.6-dan fərqin: daha dərin düşüncə zənciri, vizual məlumat analizi və daha dəqiq strukturlaşdırma.`,
   },
+  "alina-1.8": {
+    name: "Alina 1.8",
+    tag: "Analitik Köməkçi Max",
+    color: "#14b8a6",
+    desc: "Ən güclü analitik model — hesablamanı kodla, faktı internetlə yoxlayır.",
+    groqModel: GROQ_MODEL_SMART,
+    temperature: 0.35,
+    reasoning: true,
+    // 1.8-i 1.6 və 1.7-dən ayıran əsas cəhət: bu modelin ƏSL alətləri var.
+    // Analitik cavabda ən böyük risk uydurulmuş rəqəmdir — bu model rəqəmi
+    // özü hesablayır, aktual məlumatı isə internetdən yoxlayır.
+    agentTools: true,
+    // Alətlər BU modeldə həmişə açıqdır — istifadəçinin "Kod Köməkçisi"ni
+    // əlavə olaraq yandırması tələb olunmur. Əks halda modelin personası
+    // ("hesablamanı kodla yoxlayıram") yalan olardı: alət olmadan o, yenə
+    // zehni hesablama edərdi. Bu, 1.8-i 1.6-dan ayıran əsas cəhətdir.
+    alwaysTools: true,
+    primary: true,
+    persona: `Sən Alina 1.8-sən — Syncrom AI-ın ən güclü analitik modeli. Alina 1.6-dan fərqin: sənin ƏSL alətlərin var və sən onlardan istifadə edirsən.
+İxtisasın: maliyyə və biznes analizi, məlumat emalı, hesabatlar, proqnozlar, mürəkkəb qərar məsələləri.
+Üslubun: peşəkar, dəqiq, faktlara əsaslanan, "siz" deyə müraciət edirsən.
+
+Alət qaydaların (ən vacib hissə):
+- İSTƏNİLƏN hesablamada — faiz, artım, ortalama, kredit, büdcə, statistika — nəticəni öz başında hesablama. execute_code çağırıb ƏSL rəqəmi al. Zehni hesablamada səhv etmək analitik cavabı tamamilə yararsız edir.
+- Cari və dəyişən məlumatda — məzənnə, qiymət, bazar göstəricisi, şirkət xəbəri, statistika — web_search çağır. Yaddaşındakı rəqəm köhnə ola bilər.
+- Mənbənin özü lazımdırsa read_url ilə səhifəni aç və oxu.
+- Alət nəticəsi ilə öz gözləntin uyuşmursa, ALƏTƏ etibar et və fərqi qeyd et.
+
+Cavab quruluşun:
+1. Əvvəl YEKUN NƏTİCƏ — bir-iki cümlə ilə.
+2. Sonra hesablama/əsaslandırma: hansı rəqəm haradan gəlir.
+3. Fərziyyələr və risklər: nəyi bilmirsən, nə dəyişsə nəticə dəyişər.
+4. İstifadə etdiyin mənbələr varsa sonda linkləri göstər.
+Rəqəmləri adi mətnlə yaz (1/6, 12,5%, 2,4 saat) — LaTeX işlətmə.`,
+  },
   "keyla-5.8": {
     name: "Keyla 5.8",
     tag: "Kod Mütəxəssisi",
@@ -133,6 +169,7 @@ Alina 1.6-dan fərqin: daha dərin düşüncə zənciri, vizual məlumat analizi
     desc: "Proqramlaşdırma, debug və arxitektura üçün güclü model.",
     groqModel: GROQ_MODEL_CODE,
     temperature: 0.25,
+    primary: true,
     reasoning: true,
     agentTools: true,
     persona: `Sən Keyla 5.8 — Syncrom AI-ın kodlaşdırma modeli. Dünya səviyyəli senior software engineer kimi davranırsan.
@@ -175,6 +212,7 @@ Qaydaların:
     desc: "Satış avtomatlaşdırılması, korporativ analitika və B2B müştəri xidmətləri.",
     groqModel: GROQ_MODEL_SMART,
     temperature: 0.5,
+    primary: true,
     reasoning: true,
     dynamicPersona: () => loadVellaPersona() + loadVellaKnowledge(),
   },
@@ -258,6 +296,7 @@ const MODEL_I18N = {
   en: {
     "alina-1.6": { tag: "Analytical Assistant", desc: "For deep analysis, reports and complex problems." },
     "alina-1.7": { tag: "Analytical Assistant Pro", desc: "Upgraded Alina — with image analysis." },
+    "alina-1.8": { tag: "Analytical Assistant Max", desc: "The strongest analyst — verifies maths with code and facts on the web." },
     "keyla-5.8": { tag: "Code Specialist", desc: "A strong model for programming, debugging and architecture." },
     "vella-1.0": { tag: "B2B CRM & Sales", desc: "Sales automation, corporate analytics and B2B customer service." },
     "lira-1.0": { tag: "Creative Writer", desc: "Writes copy, scripts, ad slogans and poetry." },
@@ -268,6 +307,7 @@ const MODEL_I18N = {
   ru: {
     "alina-1.6": { tag: "Аналитический помощник", desc: "Для глубокого анализа, отчётов и сложных задач." },
     "alina-1.7": { tag: "Аналитический помощник Pro", desc: "Улучшенная Alina — с анализом изображений." },
+    "alina-1.8": { tag: "Аналитический помощник Max", desc: "Сильнейший аналитик — проверяет расчёты кодом, факты в интернете." },
     "keyla-5.8": { tag: "Специалист по коду", desc: "Мощная модель для программирования, отладки и архитектуры." },
     "vella-1.0": { tag: "B2B CRM и продажи", desc: "Автоматизация продаж, корпоративная аналитика и B2B-сервис." },
     "lira-1.0": { tag: "Креативный автор", desc: "Пишет тексты, сценарии, слоганы и стихи." },
@@ -278,6 +318,7 @@ const MODEL_I18N = {
   tr: {
     "alina-1.6": { tag: "Analitik Asistan", desc: "Derin analiz, raporlar ve karmaşık problemler için." },
     "alina-1.7": { tag: "Analitik Asistan Pro", desc: "Geliştirilmiş Alina — görsel analiz desteğiyle." },
+    "alina-1.8": { tag: "Analitik Asistan Max", desc: "En güçlü analist — hesabı kodla, bilgiyi internetle doğrular." },
     "keyla-5.8": { tag: "Kod Uzmanı", desc: "Programlama, hata ayıklama ve mimari için güçlü model." },
     "vella-1.0": { tag: "B2B CRM & Satış", desc: "Satış otomasyonu, kurumsal analitik ve B2B müşteri hizmetleri." },
     "lira-1.0": { tag: "Yaratıcı Yazar", desc: "Metin, senaryo, reklam sloganı ve şiir yazar." },
@@ -303,6 +344,9 @@ app.get("/api/models", (req, res) => {
         desc: loc[id]?.desc || m.desc,
         vision: !!m.vision,
         agentTools: !!m.agentTools,
+        // Əsas modellər seçicidə yuxarıda göstərilir, qalanları
+        // "Digər modellər" bölməsinin altında gizlənir.
+        primary: !!m.primary,
       })),
   });
 });
@@ -938,7 +982,7 @@ async function buildGroqMessages(req, model) {
   const memBlock = memorySystemMessage(memories);
   if (memBlock) groqMessages.push(memBlock);
 
-  if (agentMode) groqMessages.push(AGENT_MODE_SYSTEM_MESSAGE);
+  if (agentMode || model.alwaysTools) groqMessages.push(AGENT_MODE_SYSTEM_MESSAGE);
 
   const lastUserText = [...messages].reverse().find((m) => m.role === "user")?.content || "";
 
@@ -1073,7 +1117,9 @@ app.post("/api/chat/stream", async (req, res) => {
     // lazımdır), ona görə son mətn bir dəfəyə göndərilir. Amma gözləmə
     // müddətində istifadəçi kor qalmasın — hər alət çağırışı ADDIM KADRI
     // kimi dərhal ötürülür (bax: STEP_FRAME protokolu).
-    if (agentMode) {
+    // alwaysTools: Alina 1.8 kimi modellər alətləri həmişə işlədir —
+    // istifadəçi "Kod Köməkçisi"ni ayrıca açmasa da alət dövrəsinə girilir.
+    if (agentMode || model.alwaysTools) {
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("X-Accel-Buffering", "no");

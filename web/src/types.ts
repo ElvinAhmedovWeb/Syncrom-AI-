@@ -24,6 +24,8 @@ export interface ModelInfo {
   desc: string;
   vision: boolean;
   agentTools: boolean;
+  /** Əsas modellər seçicidə yuxarıda, qalanları "Digər modellər" altında */
+  primary?: boolean;
 }
 
 export interface ModelsResponse {

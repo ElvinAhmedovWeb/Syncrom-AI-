@@ -2654,3 +2654,55 @@
   line-height: 1.55;
   word-break: break-word;
 }
+
+/* ---------- Model seçicisi: "Digər modellər" bölməsi ---------- */
+.model-others-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: none;
+  border-top: 1px solid var(--border-soft);
+  border-radius: 0 0 9px 9px;
+  background: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.model-others-toggle:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.model-others-toggle > span:first-child {
+  flex: 1;
+  text-align: left;
+}
+
+.model-others-count {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-input);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.model-others-toggle svg {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.model-others-toggle.open svg {
+  transform: rotate(90deg);
+}
+
+.model-others {
+  overflow: hidden;
+}
