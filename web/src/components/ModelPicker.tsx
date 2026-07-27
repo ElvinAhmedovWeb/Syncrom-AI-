@@ -47,8 +47,11 @@ export default function ModelPicker({ models, currentId, onSelect }: Props) {
       {open && (
         <motion.div
           className="model-menu"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+          // x: "-50%" mərkəzləmə üçündür (CSS-də left: 50%). Framer inline
+          // transform yazdığı üçün bunu CSS-də saxlamaq mümkün deyil —
+          // inline transform CSS-dəki transform-u tamamilə əvəz edir.
+          initial={{ opacity: 0, x: "-50%", y: 8 }}
+          animate={{ opacity: 1, x: "-50%", y: 0 }}
           transition={{ duration: 0.18, ease: EASE_OUT }}
         >
           {models.map((m) => (
@@ -66,7 +69,7 @@ export default function ModelPicker({ models, currentId, onSelect }: Props) {
               <span className="m-info">
                 <span className="m-name">
                   {m.name}
-                  {m.vision && <span title={t("plus.imageSub")}>📷</span>}
+                  {m.vision && <span title={t("plus.imageSub")}></span>}
                 </span>
                 <span className="m-tag">
                   {m.tag} · {m.desc}
