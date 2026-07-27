@@ -345,6 +345,8 @@ export default function ChatShell({
           imageGenEnabled={imageGenEnabled}
           imageGenActive={ctrl.imageGenMode}
           onToggleImageGen={ctrl.toggleImageGen}
+          imageAspect={ctrl.imageAspect}
+          onSelectImageAspect={ctrl.selectImageAspect}
           deepThinkActive={ctrl.deepThink}
           onToggleDeepThink={ctrl.toggleDeepThink}
           agentToolsEnabled={agentToolsEnabled}

@@ -10,11 +10,26 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+// ------------------------------------------------------------
+// Model seçimi
+//
+// GROQ_MODEL — KÖMƏKÇİ (arxa fon) çağırışları üçün: başlıq yaratma,
+// yaddaş çıxarışı, açar söz çıxarışı, davam sualları. Bunlar KİÇİK
+// max_tokens ilə işləyir, ona görə burada "reasoning" modeli OLMAMALIDIR:
+// gpt-oss ailəsi cavabdan əvvəl düşüncə tokeni yeyir və max_tokens az
+// olanda BOŞ cavab qaytarır (finish_reason: "length"). llama-3.3 belə
+// davranmır. Bu, həm də groqRequest-in ehtiyat (fallback) modelidir.
 const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+// Söhbət personaları üçün əsas model — ölçülmüş fərq: Azərbaycan dilində
+// diakritikanı düzgün saxlayır, klişe təkrarlamır, strukturu daha yaxşı qurur.
+const GROQ_MODEL_SMART = process.env.GROQ_MODEL_SMART || "openai/gpt-oss-120b";
+// Şəkil analizi — hesabdakı YEGANƏ vision modeli (gpt-oss şəkil qəbul etmir).
 const GROQ_MODEL_VISION = process.env.GROQ_MODEL_VISION || "qwen/qwen3.6-27b";
 const GROQ_MODEL_CODE = process.env.GROQ_MODEL_CODE || "openai/gpt-oss-120b";
-// Qısa, sürətli cavablar üçün kiçik model (Milla) — böyük modeldən ~5-10x tez cavab verir
-const GROQ_MODEL_FAST = process.env.GROQ_MODEL_FAST || "llama-3.1-8b-instant";
+// Qısa, sürətli cavablar üçün (Milla). 8b modeli sınaqda sadə faktı səhv
+// cavablandırdı ("Bakı Braziliyanın paytaxtıdır"), ona görə 20b seçilib —
+// ~0.5 san. cavab verir, yəni hələ də "sürətli", amma etibarlıdır.
+const GROQ_MODEL_FAST = process.env.GROQ_MODEL_FAST || "openai/gpt-oss-20b";
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
 const ELEVENLABS_MODEL = process.env.ELEVENLABS_MODEL || "eleven_multilingual_v2";
@@ -84,8 +99,9 @@ const MODELS = {
     tag: "Analitik Köməkçi",
     color: "#0d9488",
     desc: "Dərin analiz, hesabatlar və mürəkkəb məsələlər üçün.",
-    groqModel: GROQ_MODEL,
+    groqModel: GROQ_MODEL_SMART,
     temperature: 0.4,
+    reasoning: true,
     persona: `Sən Alina 1.6 — Syncrom AI-ın analitik köməkçi modeli.
 İxtisasın: dərin analiz, məlumatların emalı, maliyyə və biznes təhlili, strukturlaşdırılmış hesabatlar, mürəkkəb problemlərin həlli.
 Üslubun: peşəkar, dəqiq, faktlara əsaslanan, "siz" deyə müraciət edirsən.
@@ -157,8 +173,9 @@ Qaydaların:
     tag: "B2B CRM & Satış",
     color: "#e11d48",
     desc: "Satış avtomatlaşdırılması, korporativ analitika və B2B müştəri xidmətləri.",
-    groqModel: GROQ_MODEL,
+    groqModel: GROQ_MODEL_SMART,
     temperature: 0.5,
+    reasoning: true,
     dynamicPersona: () => loadVellaPersona() + loadVellaKnowledge(),
   },
   "lira-1.0": {
@@ -166,10 +183,11 @@ Qaydaların:
     tag: "Yaradıcı Yazar",
     color: "#a855f7",
     desc: "Mətn, ssenari, reklam şüarı və şeir yazan yaradıcı model.",
-    groqModel: GROQ_MODEL,
-    // 0.9+ temperaturda model Azərbaycan dilində sözləri pozur (başqa
-    // dillərdən söz qarışdırır) — yaradıcılıq üçün 0.8 tavan kimidir.
+    groqModel: GROQ_MODEL_SMART,
+    // Yaradıcılıq üçün yüksəkdir, amma 0.9+ olanda model dili pozmağa
+    // (başqa dillərdən söz qarışdırmağa) başlayır — 0.8 tavan kimidir.
     temperature: 0.8,
+    reasoning: true,
     persona: `Sən Lira 1.0 — Syncrom AI-ın yaradıcı yazar modeli.
 İxtisasın: hekayə və ssenari yazmaq, şeir, reklam mətnləri (copywriting), sosial media postları, brend şüarları, məhsul təsvirləri, e-mail mətnləri.
 Üslubun: canlı, obrazlı, ritmli; "sən" deyə müraciət edirsən.
@@ -184,8 +202,9 @@ Uzun mətnlərdə başlıq, alt başlıq və abzas quruluşundan istifadə et.`,
     tag: "Tərcüməçi & Redaktor",
     color: "#0ea5e9",
     desc: "Dəqiq tərcümə, qrammatika düzəlişi və mətn redaktəsi.",
-    groqModel: GROQ_MODEL,
+    groqModel: GROQ_MODEL_SMART,
     temperature: 0.3,
+    reasoning: true,
     persona: `Sən Zeyra 1.0 — Syncrom AI-ın tərcümə və redaktə modeli.
 İxtisasın: dillər arası tərcümə (Azərbaycan, ingilis, rus, türk və s.), qrammatika/orfoqrafiya düzəlişi, mətnin üslub redaktəsi, rəsmi və qeyri-rəsmi tonun tənzimlənməsi.
 Üslubun: dəqiq, təmkinli, izahlı; "siz" deyə müraciət edirsən.
@@ -201,6 +220,7 @@ Hədəf dil göstərilməyibsə, mətnin dilindən əksinə (Azərbaycan ↔ ing
     desc: "Qısa suallara ani cavab — gündəlik iş üçün ən sürətli model.",
     groqModel: GROQ_MODEL_FAST,
     temperature: 0.6,
+    reasoning: true,
     persona: `Sən Milla 1.0 — Syncrom AI-ın sürətli köməkçi modeli.
 BİRİNCİ VƏ ƏN VACİB QAYDA: cavabın DƏRHAL məlumatla başlayır. Giriş cümləsi QADAĞANDIR — "Əla sual", "Yaxşı sual", "Təbii ki", "Əlbəttə", "Sualınıza görə təşəkkür" kimi heç bir açılış yazma. İlk sözün cavabın özü olsun.
 Rolun: gündəlik qısa suallara ani, dəqiq cavab vermək — tərif, tarix, çevirmə, qısa siyahı, sadə hesablama, tez məsləhət.
@@ -214,8 +234,9 @@ Bilmədiyini qısaca "bilmirəm" de — uydurma.`,
     tag: "Virtual Müəllim",
     color: "#d97706",
     desc: "Mövzuları sadə dildə izah edən öyrətmə yoldaşı.",
-    groqModel: GROQ_MODEL,
+    groqModel: GROQ_MODEL_SMART,
     temperature: 0.75,
+    reasoning: true,
     persona: `Sən Trila 1.4-sən — Syncrom AI-ın virtual müəllim modeli.
 İxtisasın: şagird və tələbələrə mövzuları öyrətmək, ev tapşırıqlarında istiqamət vermək, imtahana hazırlıq.
 Üslubun: səbirli, mehriban, ruhlandırıcı, "sən" deyə müraciət edirsən.
@@ -308,15 +329,25 @@ Syncrom AI haqqında (dəqiq faktlar):
   }
 - Kod yazanda kod bloklarından, izahlarda markdown formatından (başlıq, siyahı, bold) istifadə et.
 - Söhbətin əvvəlki hissələrini yadda saxla və kontekstə uyğun cavab ver.
-- Bilmədiyin şeyi uydurma — bilmədiyini de.
-- Cavabların aydın və lazım olduğu qədər ətraflı olsun; boş uzunçuluq etmə.`;
+- Riyazi ifadələri ADİ MƏTNLƏ yaz: 1/6 + 1/4 = 5/12. LaTeX işlətmə — \\[ \\], \\( \\), \\frac, \\text kimi işarələr interfeysdə xam simvol kimi görünür və oxunmur. Düstur lazımdırsa kod blokuna sal.
+- Cavabın keyfiyyəti üçün:
+  • Boş giriş yazma ("Əla sual", "Təbii ki", "Sualınıza görə təşəkkür") — dərhal işə keç.
+  • Ümumi, hər yerə yaraşan cavab vermə. Konkret ol: rəqəm, ad, addım, nümunə ver.
+  • Cavabın uzunluğu sualın çəkisinə uyğun olsun — sadə suala qısa, mürəkkəbə ətraflı.
+  • Eyni fikri başqa sözlərlə təkrarlama; yekunda deyilənləri bir daha sadalama.
+  • Mürəkkəb məsələdə əvvəl nəticəni de, sonra əsaslandır — oxucu axıra qədər gözləməsin.
+  • İki-üç ağlabatan yanaşma varsa, hansını tövsiyə etdiyini SƏBƏBİ ilə de, sadəcə siyahılama.
+- Bilmədiyin şeyi uydurma — bilmədiyini de. Əmin olmadığın yerdə əminliyinin dərəcəsini bildir.
+- İstifadəçi səhv fərziyyə ilə sual verirsə, sualı olduğu kimi cavablandırmadan əvvəl səhvi qısaca düzəlt.`;
 }
 
 // ============================================================
 // Mesajları Groq formatına çevir (şəkil dəstəyi ilə)
 // ============================================================
 function toGroqMessages(messages, model) {
-  const arr = messages.slice(-30);
+  // Modellərin kontekst pəncərəsi 131k-dır — uzun söhbətdə daha çox tarixçə
+  // saxlamaq cavabın ardıcıllığını gözlə görünəcək qədər yaxşılaşdırır.
+  const arr = messages.slice(-40);
   // Yalnız son 3 şəkli göndər (token qənaəti)
   const allowImg = new Set();
   let imgCount = 0;
@@ -789,7 +820,10 @@ async function runAgentLoop(groqMessages, model, onStep = () => {}) {
       model: model.groqModel,
       messages,
       temperature: model.temperature,
-      max_tokens: 3072,
+      // Alət nəticələri (səhifə mətni, kod çıxışı) hər dövrədə konteksti
+      // şişirdir — limiti hər dəfə yenidən hesablayırıq ki, TPM həddini
+      // aşıb "Request too large" almayaq.
+      max_tokens: budgetedMaxTokens(messages, 3072),
       tools: AGENT_TOOLS,
       tool_choice: "auto",
     });
@@ -925,6 +959,42 @@ async function buildGroqMessages(req, model) {
   return groqMessages;
 }
 
+// ============================================================
+// Token büdcəsi
+//
+// Groq "on demand" səviyyəsində dəqiqəlik token limiti (TPM) 8000-dir və
+// Groq max_tokens-i də TƏLƏB OLUNAN token kimi sayır: prompt + max_tokens
+// həddi aşırsa, sorğu heç icra olunmadan rədd edilir ("Request too large").
+// Ona görə cavab limitini sabit yazmaq olmaz — prompt böyüdükcə (Deep Think,
+// veb axtarış, uzun tarixçə, alət nəticələri) onu daraltmaq lazımdır.
+// ============================================================
+const TPM_BUDGET = Number(process.env.GROQ_TPM_BUDGET || 7600);
+const MIN_ANSWER_TOKENS = 800;
+
+function estimateTokens(messages) {
+  let chars = 0;
+  let images = 0;
+  for (const m of messages) {
+    if (typeof m.content === "string") {
+      chars += m.content.length;
+    } else if (Array.isArray(m.content)) {
+      for (const part of m.content) {
+        if (part.type === "text") chars += (part.text || "").length;
+        // base64 şəklin uzunluğu token sayı ilə mütənasib deyil — sabit qiymət
+        else if (part.type === "image_url") images += 1;
+      }
+    }
+    if (m.tool_calls) chars += JSON.stringify(m.tool_calls).length;
+  }
+  // Latın/Azərbaycan mətnində ~4 simvol ≈ 1 token
+  return Math.ceil(chars / 4) + images * 1200;
+}
+
+function budgetedMaxTokens(messages, desired) {
+  const room = TPM_BUDGET - estimateTokens(messages);
+  return Math.max(MIN_ANSWER_TOKENS, Math.min(desired, room));
+}
+
 async function buildGroqBody(req, stream) {
   const { modelId, deepThink, webSearchMode, translateMode } = req.body;
   const model = getModel(modelId);
@@ -936,10 +1006,10 @@ async function buildGroqBody(req, stream) {
     // Tərcümədə yaradıcılıq zərərlidir — Lira kimi yüksək temperaturlu
     // model seçilsə də sabit, sözə sadiq çeviriş üçün aşağı salırıq.
     temperature: translateMode ? 0.2 : model.temperature,
-    // Reasoning modellər, Deep Think və Veb axtarış cavabdan əvvəl daha çox
-    // kontekst/"düşüncə" tokeni istehlak edir — bunlara daha geniş limit
-    // lazımdır ki, cavab boş qalmasın.
-    max_tokens: model.reasoning || deepThink || webSearchMode ? 4096 : 3072,
+    // Reasoning modellər cavabdan ƏVVƏL "düşüncə" tokeni xərcləyir: limit dar
+    // olanda cavab tam BOŞ qayıdır (finish_reason: "length"), ona görə onlara
+    // daha geniş pay verilir. Yekun rəqəm TPM büdcəsinə görə kəsilir.
+    max_tokens: budgetedMaxTokens(groqMessages, model.reasoning || deepThink || webSearchMode ? 4096 : 3072),
     stream,
   };
   if (model.reasoning) body.reasoning_format = "hidden";
@@ -1279,29 +1349,74 @@ app.post("/api/tts", async (req, res) => {
 // (test edildi). Ona görə göndərmədən əvvəl Groq ilə səssizcə ingiliscəyə
 // çeviririk/zənginləşdiririk — bu da pulsuzdur.
 // ============================================================
+// ============================================================
+// Şəkil prompt-u
+//
+// Əvvəl bu funksiya sadəcə tərcümə edirdi. Şəkil modelləri isə qısa,
+// ümumi təsvirdən zəif nəticə verir — kadr, işıq, üslub və detal
+// göstərilməyəndə model özü təsadüfi seçir. Ona görə burada prompt
+// TƏRCÜMƏ YOX, YENİDƏN QURULUR: mövzu → kadr → işıq → üslub → keyfiyyət.
+// ============================================================
+const IMAGE_PROMPT_SYSTEM = `You turn a user's idea (in any language) into a single high-quality English image-generation prompt.
+
+Build the prompt in this order, as one flowing comma-separated line:
+1. Main subject with concrete visual detail (age, clothing, material, colour, expression, action).
+2. Setting and background.
+3. Composition and camera: shot type (close-up / medium / wide), angle, depth of field.
+4. Lighting: direction, quality, time of day, colour temperature.
+5. Style: photography or illustration; if photo, name lens and film feel; if art, name the medium.
+6. Two or three quality words (sharp focus, fine detail, natural colours).
+
+Rules:
+- Keep every element the user asked for. Never drop or replace their subject.
+- NEVER introduce a subject the user did not mention. If they asked for a building, landscape, object or animal, do NOT add people to the scene. Only describe humans if the user actually asked for them.
+- Proper nouns are places or things, not descriptions. Treat a named landmark as the subject itself and do not translate its name into a literal scene. (For example "Maiden Tower" is a stone tower in Baku — not a maiden.) If a name is unfamiliar, keep it as-is and describe it generically rather than inventing what it means.
+- Preserve the user's stated time of day, season, weather and mood exactly. If they said sunset, the lighting must be sunset — not afternoon or golden hour generally.
+- If the user's idea is already detailed, enrich it rather than rewriting it.
+- Add nothing that contradicts the request; if they said "simple" or "minimal", honour that and keep the prompt short.
+- Prefer concrete nouns over adjectives like "beautiful" or "amazing".
+- No text, letters, logos or watermarks in the image unless explicitly requested.
+- Output ONLY the prompt line. No quotes, no explanation, no label, no line breaks.`;
+
 async function toEnglishImagePrompt(prompt) {
   try {
+    // Güclü model işlədilir: llama-3.3 Azərbaycan xüsusi adlarını hərfi
+    // tərcümə edirdi — "Qız qalası" (Bakıdakı qala) prompt-da "a young
+    // woman"-a çevrilir və şəklə heç istənilməyən adam əlavə olunurdu.
+    // Reasoning modeli olduğu üçün max_tokens əliaçıq verilir, əks halda
+    // düşüncə tokenini xərcləyib BOŞ cavab qaytarır.
     const response = await groqRequest({
-      model: GROQ_MODEL,
+      model: GROQ_MODEL_SMART,
       messages: [
-        {
-          role: "system",
-          content:
-            "İstifadəçi bir şəkil üçün təsvir verir (istənilən dildə ola bilər). Bunu şəkil yaratma modeli üçün ətraflı, canlı İNGİLİSCƏ prompt-a çevir. Yalnız İngiliscə prompt-u yaz — heç bir izah, dırnaq və ya əlavə mətn yazma.",
-        },
+        { role: "system", content: IMAGE_PROMPT_SYSTEM },
         { role: "user", content: prompt.slice(0, 500) },
       ],
-      temperature: 0.6,
-      max_tokens: 200,
+      temperature: 0.7,
+      max_tokens: 1600,
     });
     if (response.failed) return prompt;
     const data = await response.json();
-    const translated = data.choices?.[0]?.message?.content?.trim();
-    return translated || prompt;
+    let out = data.choices?.[0]?.message?.content?.trim() || "";
+    // Model bəzən dırnaq və ya "Prompt:" etiketi əlavə edir
+    out = out
+      .replace(/^\s*(prompt|image prompt)\s*:\s*/i, "")
+      .replace(/^["'«»]+|["'«»]+$/g, "")
+      .replace(/\s*\n+\s*/g, ", ")
+      .trim();
+    return out || prompt;
   } catch {
     return prompt;
   }
 }
+
+// Pollinations piksel sayını təxminən 590k ilə məhdudlaşdırır: 1024x1024
+// istəsək də 768x768 qaytarır. Ona görə ölçüləri bu tavana uyğun seçirik —
+// nisbət hörmətlə qarşılanır, artıq piksel istəmək isə sadəcə itir.
+const IMAGE_SIZES = {
+  square: { width: 1024, height: 1024 },
+  landscape: { width: 1280, height: 720 },
+  portrait: { width: 768, height: 1344 },
+};
 
 app.post("/api/generate-image", async (req, res) => {
   try {
@@ -1310,13 +1425,16 @@ app.post("/api/generate-image", async (req, res) => {
       return res.status(400).json({ error: "prompt tələb olunur" });
     }
 
+    const size = IMAGE_SIZES[req.body.aspect] || IMAGE_SIZES.square;
     const englishPrompt = await toEnglishImagePrompt(prompt);
     const seed = Math.floor(Math.random() * 1_000_000_000);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      englishPrompt.slice(0, 800)
-    )}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    const url =
+      `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPrompt.slice(0, 800))}` +
+      `?width=${size.width}&height=${size.height}&nologo=true&seed=${seed}&model=sana`;
 
-    const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
+    // Zənginləşdirilmiş prompt uzundur və şəkil generasiyası özü yavaşdır —
+    // 60 saniyə bəzən çatmırdı (ölçmədə 45 saniyəyə qədər çəkirdi).
+    const response = await fetch(url, { signal: AbortSignal.timeout(90000) });
 
     if (!response.ok) {
       const errText = await response.text().catch(() => "");
@@ -1330,6 +1448,10 @@ app.post("/api/generate-image", async (req, res) => {
     }
 
     res.setHeader("Content-Type", response.headers.get("content-type") || "image/jpeg");
+    // İstifadə olunan prompt-u klientə qaytarırıq ki, istifadəçi nəyin
+    // yaradıldığını görsün və növbəti dəfə özü dəqiqləşdirə bilsin.
+    // Başlıq yalnız ASCII qəbul edir — ona görə kodlaşdırılır.
+    res.setHeader("X-Image-Prompt", encodeURIComponent(englishPrompt.slice(0, 600)));
     const buffer = Buffer.from(await response.arrayBuffer());
     res.send(buffer);
   } catch (err) {

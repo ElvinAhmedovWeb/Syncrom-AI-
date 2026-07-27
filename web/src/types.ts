@@ -4,6 +4,8 @@ export interface ChatMessage {
   role: Role;
   content: string;
   image?: string;
+  /** Şəkil yaradılanda istifadə olunan ingiliscə prompt (yalnız göstərmək üçün) */
+  imagePrompt?: string;
 }
 
 export interface Chat {

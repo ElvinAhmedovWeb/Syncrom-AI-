@@ -1,8 +1,17 @@
-import { useRef, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { resizeImageFile } from "../lib/image";
 import { translateTargetLabel, useT } from "../lib/i18n";
+import type { ImageAspect } from "../lib/api";
 import PlusMenu from "./PlusMenu";
+
+// Pollinations piksel sayını məhdudlaşdırır (ölçüldü: 1024x1024 istəyəndə
+// 768x768 qaytarır), amma NİSBƏTİ saxlayır — ona görə seçim ölçü yox, nisbətdir.
+const ASPECTS: Array<{ id: ImageAspect; ratio: string; w: number; h: number }> = [
+  { id: "square", ratio: "1:1", w: 12, h: 12 },
+  { id: "landscape", ratio: "16:9", w: 14, h: 8 },
+  { id: "portrait", ratio: "9:16", w: 8, h: 14 },
+];
 
 interface Props {
   value: string;
@@ -20,6 +29,8 @@ interface Props {
   imageGenEnabled?: boolean;
   imageGenActive: boolean;
   onToggleImageGen: () => void;
+  imageAspect: ImageAspect;
+  onSelectImageAspect: (a: ImageAspect) => void;
   deepThinkActive: boolean;
   onToggleDeepThink: () => void;
   agentToolsEnabled?: boolean;
@@ -51,6 +62,8 @@ export default function Composer({
   imageGenEnabled,
   imageGenActive,
   onToggleImageGen,
+  imageAspect,
+  onSelectImageAspect,
   deepThinkActive,
   onToggleDeepThink,
   agentToolsEnabled,
@@ -91,12 +104,20 @@ export default function Composer({
     }
   };
 
-  const autoGrow = () => {
+  const autoGrow = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 140) + "px";
-  };
+  }, []);
+
+  // Hündürlüyü YAZMA hadisəsinə yox, dəyərin ÖZÜNƏ bağlayırıq. Əvvəl yalnız
+  // onChange-də hesablanırdı: mesaj göndəriləndə mətn valideyndən silinir,
+  // onChange isə işə düşmür — nəticədə uzun promptdan sonra sahə hündür
+  // qalırdı. Bu effekt həm göndərişi, həm də mətnin proqramla dəyişdiyi
+  // halları (mikrofon, mesajı redaktə, davam sualı) əhatə edir.
+  // useLayoutEffect — boyanmadan əvvəl işləsin ki, sıçrayış görünməsin.
+  useLayoutEffect(autoGrow, [value, autoGrow]);
 
   return (
     <footer className="composer">
@@ -109,6 +130,34 @@ export default function Composer({
               </svg>
               {t("mode.imageGen")}
               <button type="button" onClick={onToggleImageGen} aria-label={t("composer.turnOff")}>×</button>
+            </span>
+          )}
+          {imageGenActive && (
+            <span className="aspect-group" role="group" aria-label={t("img.aspect")}>
+              {ASPECTS.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  className={`aspect-btn${imageAspect === a.id ? " active" : ""}`}
+                  title={t(`img.${a.id}` as never)}
+                  aria-pressed={imageAspect === a.id}
+                  onClick={() => onSelectImageAspect(a.id)}
+                >
+                  <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden>
+                    <rect
+                      x={(16 - a.w) / 2}
+                      y={(16 - a.h) / 2}
+                      width={a.w}
+                      height={a.h}
+                      rx="1.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                    />
+                  </svg>
+                  {a.ratio}
+                </button>
+              ))}
             </span>
           )}
           {translateActive && (

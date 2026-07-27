@@ -2593,3 +2593,64 @@
     text-overflow: ellipsis;
   }
 }
+
+/* ---------- Şəkil nisbəti seçicisi ---------- */
+.aspect-group {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  background: var(--bg-input);
+}
+
+.aspect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.66rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.aspect-btn:hover {
+  color: var(--text);
+}
+
+.aspect-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Şəkil üçün istifadə olunan prompt ---------- */
+.img-prompt {
+  margin-top: 8px;
+  font-size: 0.73rem;
+}
+
+.img-prompt summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  user-select: none;
+}
+
+.img-prompt summary:hover {
+  color: var(--text);
+}
+
+.img-prompt p {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--bg-input);
+  color: var(--text-dim);
+  line-height: 1.55;
+  word-break: break-word;
+}

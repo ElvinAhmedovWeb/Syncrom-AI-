@@ -8,6 +8,7 @@ import {
   extractMemory,
   fetchFollowups,
   type AgentStep,
+  type ImageAspect,
 } from "../lib/api";
 import { stripForSpeech } from "../lib/markdown";
 import { blobToDataUrl } from "../lib/image";
@@ -35,6 +36,7 @@ interface Options {
 type SpeakState = { key: string; state: "loading" | "playing" } | null;
 
 const TRANSLATE_TARGET_KEY = "syncrom_translate_to";
+const IMAGE_ASPECT_KEY = "syncrom_image_aspect";
 
 // Adsız söhbətin başlığı YADDA SAXLANMIR (boş string kimi saxlanır) — belə
 // olmasa başlıq bir dildə yazılıb, istifadəçi dili dəyişəndə köhnə dildə
@@ -63,6 +65,9 @@ export function useChatController({
   const [deepThink, setDeepThink] = useState(false);
   const [agentMode, setAgentMode] = useState(false);
   const [imageGenMode, setImageGenMode] = useState(false);
+  const [imageAspect, setImageAspect] = useState<ImageAspect>(
+    () => (localStorage.getItem(IMAGE_ASPECT_KEY) as ImageAspect | null) || "square"
+  );
   const [webSearchMode, setWebSearchMode] = useState(false);
   const [translateMode, setTranslateMode] = useState(false);
   const [translateTo, setTranslateTo] = useState<string>(
@@ -416,11 +421,16 @@ export function useChatController({
       abortRef.current = ctrl;
 
       try {
-        const blob = await generateImage(prompt, ctrl.signal);
+        const { blob, usedPrompt } = await generateImage(prompt, imageAspect, ctrl.signal);
         const dataUrl = await blobToDataUrl(blob);
         const finalMessages: ChatMessage[] = [
           ...withUser.messages,
-          { role: "assistant", content: t("reply.imageHere"), image: dataUrl },
+          {
+            role: "assistant",
+            content: t("reply.imageHere"),
+            image: dataUrl,
+            ...(usedPrompt ? { imagePrompt: usedPrompt } : {}),
+          },
         ];
         const finalChat: Chat = { ...withUser, messages: finalMessages };
         setCurrentChat(finalChat);
@@ -443,8 +453,13 @@ export function useChatController({
         abortRef.current = null;
       }
     },
-    [currentChat, freshChat, currentModelId, maybeTitleAndPersist, t]
+    [currentChat, freshChat, currentModelId, maybeTitleAndPersist, t, imageAspect]
   );
+
+  const selectImageAspect = useCallback((a: ImageAspect) => {
+    setImageAspect(a);
+    localStorage.setItem(IMAGE_ASPECT_KEY, a);
+  }, []);
 
   const sendMessage = useCallback(
     (text: string, image?: string | null) => {
@@ -625,6 +640,8 @@ export function useChatController({
     toggleAgentMode,
     imageGenMode,
     toggleImageGen,
+    imageAspect,
+    selectImageAspect,
     webSearchMode,
     toggleWebSearch,
     translateMode,

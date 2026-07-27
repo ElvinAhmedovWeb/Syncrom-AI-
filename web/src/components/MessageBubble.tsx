@@ -133,6 +133,14 @@ export default function MessageBubble({
         {!isUser && steps && steps.length > 0 && <StepList steps={steps} />}
         <div className="bubble">
           {message.image && <img className="msg-image" src={message.image} alt={t("msg.sentImage")} />}
+          {/* Şəkil üçün qurulan prompt — istifadəçi nəyin yaradıldığını görsün
+              və növbəti dəfə sorğusunu dəqiqləşdirə bilsin */}
+          {message.imagePrompt && (
+            <details className="img-prompt">
+              <summary>{t("img.usedPrompt")}</summary>
+              <p>{message.imagePrompt}</p>
+            </details>
+          )}
           {isUser ? (
             message.content && <p>{message.content}</p>
           ) : (

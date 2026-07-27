@@ -193,16 +193,34 @@ export async function fetchSpeech(text: string): Promise<Blob> {
   return res.blob();
 }
 
-export async function generateImage(prompt: string, signal?: AbortSignal): Promise<Blob> {
+export type ImageAspect = "square" | "landscape" | "portrait";
+
+export interface GeneratedImage {
+  blob: Blob;
+  /** Serverin şəkil üçün qurduğu ingiliscə prompt — istifadəçiyə göstərilir */
+  usedPrompt: string;
+}
+
+export async function generateImage(
+  prompt: string,
+  aspect: ImageAspect,
+  signal?: AbortSignal
+): Promise<GeneratedImage> {
   const res = await fetch("/api/generate-image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, aspect }),
     signal,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || "Şəkil yaratma xətası");
   }
-  return res.blob();
+  let usedPrompt = "";
+  try {
+    usedPrompt = decodeURIComponent(res.headers.get("X-Image-Prompt") || "");
+  } catch {
+    // Başlıq pozuqdursa prompt sadəcə göstərilmir
+  }
+  return { blob: await res.blob(), usedPrompt };
 }

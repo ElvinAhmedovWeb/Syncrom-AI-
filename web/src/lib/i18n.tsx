@@ -196,6 +196,11 @@ const azCore = {
   "about.close": "Bağla",
 
   // ---------- Artefakt (canlı önizləmə) ----------
+  "img.aspect": "Nisbət",
+  "img.square": "Kvadrat (1:1)",
+  "img.landscape": "Geniş (16:9)",
+  "img.portrait": "Portret (9:16)",
+  "img.usedPrompt": "İstifadə olunan prompt",
   "art.preview": "Önizləmə",
   "art.title": "Artefakt",
   "art.result": "Nəticə",
@@ -377,6 +382,11 @@ const enCore = {
   "about.models": "Models",
   "about.close": "Close",
 
+  "img.aspect": "Aspect ratio",
+  "img.square": "Square (1:1)",
+  "img.landscape": "Wide (16:9)",
+  "img.portrait": "Portrait (9:16)",
+  "img.usedPrompt": "Prompt used",
   "art.preview": "Preview",
   "art.title": "Artifact",
   "art.result": "Result",
@@ -549,6 +559,11 @@ const ruCore = {
   "about.models": "Модели",
   "about.close": "Закрыть",
 
+  "img.aspect": "Соотношение",
+  "img.square": "Квадрат (1:1)",
+  "img.landscape": "Широкий (16:9)",
+  "img.portrait": "Портрет (9:16)",
+  "img.usedPrompt": "Использованный промпт",
   "art.preview": "Просмотр",
   "art.title": "Артефакт",
   "art.result": "Результат",
@@ -721,6 +736,11 @@ const trCore = {
   "about.models": "Modeller",
   "about.close": "Kapat",
 
+  "img.aspect": "Oran",
+  "img.square": "Kare (1:1)",
+  "img.landscape": "Geniş (16:9)",
+  "img.portrait": "Dikey (9:16)",
+  "img.usedPrompt": "Kullanılan prompt",
   "art.preview": "Önizleme",
   "art.title": "Artifact",
   "art.result": "Sonuç",
