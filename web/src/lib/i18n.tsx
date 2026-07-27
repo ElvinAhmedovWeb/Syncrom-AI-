@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { landingAz, landingEn, landingRu, landingTr } from "./i18nLanding";
+import { aboutAz, aboutEn, aboutRu, aboutTr } from "./i18nAbout";
 
 // ============================================================
 // Çoxdillilik (i18n) — Azərbaycan, ingilis, rus, türk.
@@ -233,7 +234,7 @@ const azCore = {
 } as const;
 
 // Landing mətnləri ayrı fayldadır, burada birləşdirilir
-const az = { ...azCore, ...landingAz };
+const az = { ...azCore, ...landingAz, ...aboutAz };
 
 type Dict = Record<keyof typeof az, string>;
 
@@ -753,9 +754,9 @@ const trCore = {
   "doc.desc": "Syncrom AI — analiz, kod, satış, çeviri ve eğitim için 8 uzmanlaşmış yapay zekâ modeli.",
 };
 
-const en: Dict = { ...enCore, ...landingEn };
-const ru: Dict = { ...ruCore, ...landingRu };
-const tr: Dict = { ...trCore, ...landingTr };
+const en: Dict = { ...enCore, ...landingEn, ...aboutEn };
+const ru: Dict = { ...ruCore, ...landingRu, ...aboutRu };
+const tr: Dict = { ...trCore, ...landingTr, ...aboutTr };
 
 const DICTS: Record<Lang, Dict> = { az, en, ru, tr };
 
@@ -786,6 +787,23 @@ interface Ctx {
 
 const LangContext = createContext<Ctx | null>(null);
 
+// Ayrıca səhifənin "sahiblədiyi" başlıq açarı. Modul səviyyəsindədir ki,
+// həm usePageTitle, həm də provider-in effekti eyni dəyəri görsün.
+let pageTitleKey: TKey | null = null;
+
+/** Səhifəyə öz <title>-ını verir; dil dəyişəndə də düzgün qalır. */
+export function usePageTitle(key: TKey) {
+  const { lang } = useI18n();
+  useEffect(() => {
+    pageTitleKey = key;
+    document.title = `${DICTS[lang][key]} — Syncrom AI`;
+    return () => {
+      pageTitleKey = null;
+      document.title = DICTS[lang]["doc.title"];
+    };
+  }, [key, lang]);
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(detectLang);
 
@@ -800,10 +818,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   // <html lang="...">, sənəd başlığı və meta təsvir — brauzerin orfoqrafiya
   // yoxlaması, ekran oxuyucuları və paylaşım önizləmələri üçün vacibdir.
+  //
+  // Ayrıca səhifə usePageTitle() ilə başlığı öz üzərinə götürübsə, onu
+  // əzmirik: React-də uşaq effektləri valideyndən ƏVVƏL işləyir, ona görə
+  // bayraq bu effekt işləyənə qədər artıq qoyulmuş olur.
   useEffect(() => {
     const dict = DICTS[lang];
     document.documentElement.lang = lang;
-    document.title = dict["doc.title"];
+    document.title = pageTitleKey ? `${dict[pageTitleKey]} — Syncrom AI` : dict["doc.title"];
     const meta = document.querySelector('meta[name="description"]');
     if (meta) meta.setAttribute("content", dict["doc.desc"]);
   }, [lang]);

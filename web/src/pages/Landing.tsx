@@ -115,6 +115,7 @@ export default function Landing() {
             <a href="#download">{t("l.nav.download")}</a>
             <a href="#features">{t("l.nav.features")}</a>
             <a href="#faq">{t("l.nav.faq")}</a>
+            <a href="/about">{t("a.nav.link")}</a>
           </div>
           <div className="l-nav-right">
             <div className="l-langs" role="group" aria-label={t("acct.language")}>
@@ -670,6 +671,7 @@ export default function Landing() {
             </div>
             <div>
               <h4>{t("l.foot.company")}</h4>
+              <a href="/about">{t("a.nav.link")}</a>
               <a href="#how">{t("l.foot.howTo")}</a>
               <a href="#faq">{t("l.nav.faq")}</a>
               <a href="mailto:syncromai@gmail.com">{t("l.foot.contact")}</a>

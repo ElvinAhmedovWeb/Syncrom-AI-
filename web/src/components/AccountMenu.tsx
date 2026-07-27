@@ -26,7 +26,6 @@ export default function AccountMenu({ displayName, email, photoURL, isGuest, onS
   const [open, setOpen] = useState(false);
   const [langsOpen, setLangsOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -208,20 +207,16 @@ export default function AccountMenu({ displayName, email, photoURL, isGuest, onS
             </button>
 
             {/* ---------- Haqqında ---------- */}
-            <button
-              type="button"
-              onClick={() => {
-                setAboutOpen(true);
-                closeMenu();
-              }}
-            >
+            {/* Kiçik pəncərə əvəzinə tam səhifəyə aparır (/about) — orada
+                modellər, bacarıqlar, texnologiya və məxfilik detallı yazılıb. */}
+            <a href="/about" onClick={closeMenu}>
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="9" />
                 <line x1="12" y1="11" x2="12" y2="16" />
                 <line x1="12" y1="8" x2="12" y2="8" />
               </svg>
               <span className="uc-item-label">{t("acct.about")}</span>
-            </button>
+            </a>
 
             <div className="uc-sep" />
 
@@ -257,8 +252,6 @@ export default function AccountMenu({ displayName, email, photoURL, isGuest, onS
           </motion.div>
         )}
       </div>
-
-      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       {memoryOpen && <MemoryDialog memory={api.memory} onClose={() => setMemoryOpen(false)} />}
     </>
   );
@@ -389,53 +382,6 @@ function MemoryDialog({
           </button>
         )}
 
-        <button type="button" className="about-close" onClick={onClose}>
-          {t("about.close")}
-        </button>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function AboutDialog({ onClose }: { onClose: () => void }) {
-  const { t } = useI18n();
-
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-
-  return (
-    <motion.div
-      className="about-overlay"
-      onClick={onClose}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.18 }}
-    >
-      <motion.div
-        className="about-dialog"
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, y: 14, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.22, ease: EASE_OUT }}
-        role="dialog"
-        aria-modal="true"
-      >
-        <h3>{t("about.title")}</h3>
-        <dl>
-          <div className="about-row">
-            <dt>{t("about.founder")}</dt>
-            <dd>{t("about.founderName")}</dd>
-          </div>
-          <div className="about-row">
-            <dt>{t("about.tech")}</dt>
-            <dd>{t("about.techValue")}</dd>
-          </div>
-        </dl>
         <button type="button" className="about-close" onClick={onClose}>
           {t("about.close")}
         </button>

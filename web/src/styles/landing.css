@@ -1104,3 +1104,420 @@
 .l-foot-cols a:hover {
   color: var(--l-fg);
 }
+
+/* ============================================================
+   /about — "Syncrom AI haqqında" səhifəsi
+   Landing-in dəyişənlərini (--l-*) miras alır, ona görə burada
+   yalnız bu səhifəyə xas quruluş var.
+   ============================================================ */
+
+.a-hero {
+  padding: 64px 0 44px;
+  border-bottom: 1px solid var(--l-border);
+  background: linear-gradient(180deg, var(--l-surface) 0%, var(--l-bg) 100%);
+}
+
+.a-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 18px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--l-muted);
+  transition: color 0.15s;
+}
+
+.a-back:hover {
+  color: var(--l-fg);
+}
+
+.a-h1 {
+  margin: 16px 0 14px;
+  font-family: var(--l-font-display);
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.a-lead {
+  max-width: 62ch;
+  font-size: clamp(1rem, 1.6vw, 1.12rem);
+  line-height: 1.65;
+  color: var(--l-muted);
+}
+
+.a-section {
+  padding: 56px 0;
+}
+
+.a-alt {
+  background: var(--l-surface);
+  border-top: 1px solid var(--l-border);
+  border-bottom: 1px solid var(--l-border);
+}
+
+.a-narrow {
+  max-width: 760px;
+}
+
+.a-h2 {
+  margin: 0 0 10px;
+  font-family: var(--l-font-display);
+  font-size: clamp(1.4rem, 3vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.a-center {
+  text-align: center;
+}
+
+.a-sub {
+  max-width: 62ch;
+  margin: 0 0 26px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--l-muted);
+}
+
+.a-center + .a-sub,
+.a-h2.a-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.a-head {
+  margin-bottom: 30px;
+}
+
+.a-prose p {
+  max-width: 68ch;
+  margin: 0 0 14px;
+  font-size: 0.97rem;
+  line-height: 1.72;
+  color: var(--l-muted);
+}
+
+.a-prose p:last-child {
+  margin-bottom: 0;
+}
+
+.a-note {
+  margin: 22px 0 0;
+  font-size: 0.85rem;
+  color: var(--l-muted);
+  font-style: italic;
+}
+
+/* ---------- Qurucu ---------- */
+.a-founder {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 22px;
+  border: 1px solid var(--l-border);
+  border-radius: 18px;
+  background: var(--l-surface);
+}
+
+.a-founder-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--l-alina-soft);
+  color: var(--l-alina-fg);
+  font-family: var(--l-font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.a-founder-body h3 {
+  margin: 0 0 2px;
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.a-founder-role {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--l-alina);
+}
+
+.a-founder-body p:last-child {
+  margin: 0;
+  font-size: 0.93rem;
+  line-height: 1.65;
+  color: var(--l-muted);
+}
+
+/* ---------- Modellər ---------- */
+.a-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.a-model {
+  padding: 18px;
+  border: 1px solid var(--l-border);
+  border-radius: 16px;
+  background: var(--l-bg);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+
+.a-model:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(24, 24, 27, 0.07);
+}
+
+.a-model-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 9px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.a-model h3 {
+  margin: 0 0 6px;
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.a-model p {
+  margin: 0;
+  font-size: 0.87rem;
+  line-height: 1.6;
+  color: var(--l-muted);
+}
+
+.a-model-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 11px;
+}
+
+/* ---------- Bacarıqlar ---------- */
+.a-cap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.a-cap {
+  padding: 18px;
+  border: 1px solid var(--l-border);
+  border-radius: 16px;
+  background: var(--l-surface);
+}
+
+.a-cap-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 12px;
+  border-radius: 11px;
+  background: var(--l-alina-soft);
+  color: var(--l-alina);
+}
+
+.a-cap h3 {
+  margin: 0 0 6px;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.a-cap p {
+  margin: 0;
+  font-size: 0.87rem;
+  line-height: 1.62;
+  color: var(--l-muted);
+}
+
+/* ---------- Məhsullar ---------- */
+.a-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.a-product {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid var(--l-border);
+  border-radius: 18px;
+  background: var(--l-bg);
+}
+
+.a-product h3 {
+  margin: 0 0 8px;
+  font-family: var(--l-font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.a-product p {
+  flex: 1;
+  margin: 0 0 16px;
+  font-size: 0.89rem;
+  line-height: 1.62;
+  color: var(--l-muted);
+}
+
+.a-product .l-btn {
+  align-self: flex-start;
+}
+
+/* ---------- Texnologiya ---------- */
+.a-tech-list {
+  margin: 0;
+  border: 1px solid var(--l-border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--l-surface);
+}
+
+.a-tech-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) 1fr;
+  gap: 18px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--l-border);
+}
+
+.a-tech-row:last-child {
+  border-bottom: none;
+}
+
+.a-tech-row dt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.a-tech-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--l-surface-muted);
+  color: var(--l-muted);
+}
+
+.a-tech-row dd {
+  margin: 0;
+  align-self: center;
+  font-size: 0.89rem;
+  line-height: 1.6;
+  color: var(--l-muted);
+}
+
+/* ---------- Məxfilik ---------- */
+.a-privacy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.a-privacy {
+  padding: 20px;
+  border: 1px solid var(--l-border);
+  border-radius: 16px;
+  background: var(--l-bg);
+}
+
+.a-privacy .a-cap-icon {
+  background: var(--l-schala-soft);
+  color: var(--l-schala);
+}
+
+.a-privacy h3 {
+  margin: 0 0 6px;
+  font-size: 0.97rem;
+  font-weight: 700;
+}
+
+.a-privacy p {
+  margin: 0;
+  font-size: 0.87rem;
+  line-height: 1.62;
+  color: var(--l-muted);
+}
+
+/* ---------- Əlaqə ---------- */
+.a-contact {
+  padding: 30px;
+  border: 1px solid var(--l-border);
+  border-radius: 20px;
+  background: var(--l-surface);
+}
+
+.a-contact-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 0 0 22px;
+}
+
+.a-contact-list dt {
+  margin-bottom: 3px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--l-muted);
+}
+
+.a-contact-list dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.a-contact-list a {
+  color: var(--l-alina);
+}
+
+.a-contact-list a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .a-hero {
+    padding: 40px 0 32px;
+  }
+
+  .a-section {
+    padding: 40px 0;
+  }
+
+  .a-founder {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Ad + izah dar ekranda iki sütuna sığmır — alt-alta düzülür */
+  .a-tech-row {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+}

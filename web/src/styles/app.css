@@ -383,7 +383,11 @@
   z-index: 5;
 }
 
-.user-card-menu button {
+/* "Syncrom AI haqqında" bəndi <a>-dır (tam səhifəyə aparır), qalanları
+   <button>. İkisi də eyni görünməlidir — ona görə qayda hər ikisinə
+   tətbiq olunur və linkin standart alt xətti söndürülür. */
+.user-card-menu button,
+.user-card-menu a {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -394,12 +398,21 @@
   border-radius: 8px;
   color: var(--text);
   font-size: 0.78rem;
+  font-family: inherit;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.15s;
 }
 
-.user-card-menu button:hover {
+.user-card-menu button > svg,
+.user-card-menu a > svg {
+  flex-shrink: 0;
+}
+
+.user-card-menu button:hover,
+.user-card-menu a:hover {
   background: var(--accent-soft);
+  color: var(--text);
 }
 
 .user-card-menu {
