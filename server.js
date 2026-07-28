@@ -111,21 +111,36 @@ Rəqəmlərlə işləyəndə hesablama addımlarını göstər.`,
   },
   "alina-1.7": {
     name: "Alina 1.7",
-    tag: "Analitik Köməkçi Pro",
+    tag: "Sənəd və Şəkil Analitiki",
     color: "#2dd4bf",
-    desc: "Təkmilləşdirilmiş Alina — şəkil analizi dəstəyi ilə.",
+    desc: "Şəkildən/sənəddən rəqəmi oxuyur və onu kodla yoxlayıb hesablayır.",
     groqModel: GROQ_MODEL_VISION,
     temperature: 0.4,
     primary: true,
     vision: true,
     reasoning: true,
-    persona: `Sən Alina 1.7 — Syncrom AI-ın ən qabaqcıl analitik modeli, Alina 1.6-nın təkmilləşdirilmiş versiyası.
-İxtisasın: dərin analiz, məlumat emalı, maliyyə/biznes təhlili, strukturlaşdırılmış hesabatlar VƏ vizual analiz — göndərilən şəkilləri, cədvəlləri, qrafikləri, sənədləri analiz edirsən.
+    agentTools: true,
+    // Alətlər YALNIZ şəkil göndəriləndə avtomatik açılır. Səbəb: alət dövrəsi
+    // bloklayıcıdır (cavab hərf-hərf axmır), ona görə onu hər söhbətdə açmaq
+    // adi sualların təcrübəsini pisləşdirərdi. Şəkildən oxunan rəqəmi isə
+    // mütləq yoxlamaq lazımdır — OCR səhvi + zehni hesablama birlikdə cavabı
+    // tamamilə yanlış edir. Şəkilsiz istifadəçi alətləri "Kod Köməkçisi" ilə
+    // özü aça bilər.
+    toolsWithImages: true,
+    persona: `Sən Alina 1.7-sən — Syncrom AI-ın sənəd və şəkil analitiki.
+İxtisasın: göndərilən şəkil, sənəd, qəbz, hesab-faktura, cədvəl, qrafik və ekran görüntülərini oxumaq və içindəki məlumatı analiz etmək.
 Üslubun: peşəkar, dəqiq, faktlara əsaslanan, "siz" deyə müraciət edirsən.
-Şəkil analiz edərkən: əvvəl nə gördüyünü qısa təsvir et, sonra sualı cavablandır; oxuya bildiyin mətni/rəqəmləri dəqiq çıxar.
-Cavablarını aydın strukturla qur: başlıqlar, siyahılar, yekun nəticə.
-Riskləri, fərziyyələri və qeyri-müəyyənlikləri açıq qeyd et; hesablama addımlarını göstər.
-Alina 1.6-dan fərqin: daha dərin düşüncə zənciri, vizual məlumat analizi və daha dəqiq strukturlaşdırma.`,
+
+Şəkil ilə iş qaydan (ardıcıllığı poza bilməzsən):
+1. Əvvəl nə gördüyünü bir-iki cümlə ilə təsvir et.
+2. Oxuduğun rəqəm və mətnləri OLDUĞU KİMİ çıxar — siyahı və ya cədvəl şəklində. Bura sənin "xam məlumat" hissəndir.
+3. Oxunuşu qeyri-səlis olan yerləri ayrıca qeyd et ("rəqəm bulanıqdır, 3 və ya 8 ola bilər"). Uydurma — görmədiyin rəqəmi yazma.
+4. Hesablama tələb olunursa (cəm, fərq, faiz, ortalama, vergi, endirim) onu ÖZ BAŞINDA etmə — execute_code çağırıb əsl nəticəni al. Şəkildən oxunmuş rəqəmlə zehni hesablama iki səhvi üst-üstə qoyur.
+5. Şəkildə tanımadığın brend, məhsul, standart və ya termin varsa web_search ilə yoxla, güman etmə.
+
+Cavab quruluşun: nə gördüm → çıxarılan məlumat → hesablama (kodla) → nəticə → fərziyyələr/risklər.
+Rəqəmləri adi mətnlə yaz (2 056,25 · 23,5% · 1/6) — LaTeX işlətmə.
+Şəkil yoxdursa adi analitik köməkçi kimi işlə.`,
   },
   "alina-1.8": {
     name: "Alina 1.8",
@@ -562,6 +577,20 @@ Təlimat:
 // ============================================================
 const MAX_MEMORIES = 40;
 
+// toolsWithImages modelləri (Alina 1.7) üçün: şəkil göndərilibsə alət
+// dövrəsinə giririk, göndərilməyibsə adi (axınlı) cavab veririk.
+function hasImage(messages) {
+  return Array.isArray(messages) && messages.slice(-6).some((m) => !!m.image);
+}
+
+function toolsEnabled(model, req) {
+  return (
+    !!req.body.agentMode ||
+    !!model.alwaysTools ||
+    (!!model.toolsWithImages && hasImage(req.body.messages))
+  );
+}
+
 function memorySystemMessage(memories) {
   if (!Array.isArray(memories) || memories.length === 0) return null;
   const list = memories
@@ -864,10 +893,15 @@ async function runAgentLoop(groqMessages, model, onStep = () => {}) {
       model: model.groqModel,
       messages,
       temperature: model.temperature,
-      // Alət nəticələri (səhifə mətni, kod çıxışı) hər dövrədə konteksti
-      // şişirdir — limiti hər dəfə yenidən hesablayırıq ki, TPM həddini
-      // aşıb "Request too large" almayaq.
-      max_tokens: budgetedMaxTokens(messages, 3072),
+      // Reasoning modelləri düşüncəsini cavabın İÇİNƏ yazır (qwen bunu xam
+      // <think> bloku kimi verir). buildGroqBody-də bu söndürülür, amma alət
+      // dövrəsi öz sorğusunu qurur — burada da qoymasan düşüncə istifadəçiyə
+      // görünür. Alətlərlə uyğunluğu yoxlanılıb.
+      ...(model.reasoning ? { reasoning_format: "hidden" } : {}),
+      // Alət dövrəsi bir sual üçün 2-4 çağırış edir və hamısı EYNİ dəqiqəlik
+      // token büdcəsindən (8000 TPM) yeyir. Tək sorğu limitə sığsa da cəmi
+      // aşırdı, ona görə burada pay adi cavabdan dar tutulur.
+      max_tokens: budgetedMaxTokens(messages, 2048),
       tools: AGENT_TOOLS,
       tool_choice: "auto",
     });
@@ -982,7 +1016,7 @@ async function buildGroqMessages(req, model) {
   const memBlock = memorySystemMessage(memories);
   if (memBlock) groqMessages.push(memBlock);
 
-  if (agentMode || model.alwaysTools) groqMessages.push(AGENT_MODE_SYSTEM_MESSAGE);
+  if (toolsEnabled(model, req)) groqMessages.push(AGENT_MODE_SYSTEM_MESSAGE);
 
   const lastUserText = [...messages].reverse().find((m) => m.role === "user")?.content || "";
 
@@ -1105,7 +1139,7 @@ app.post("/api/chat", async (req, res) => {
 // ============================================================
 app.post("/api/chat/stream", async (req, res) => {
   try {
-    const { messages, modelId, agentMode } = req.body;
+    const { messages, modelId } = req.body;
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "messages massivi tələb olunur" });
     }
@@ -1117,9 +1151,9 @@ app.post("/api/chat/stream", async (req, res) => {
     // lazımdır), ona görə son mətn bir dəfəyə göndərilir. Amma gözləmə
     // müddətində istifadəçi kor qalmasın — hər alət çağırışı ADDIM KADRI
     // kimi dərhal ötürülür (bax: STEP_FRAME protokolu).
-    // alwaysTools: Alina 1.8 kimi modellər alətləri həmişə işlədir —
-    // istifadəçi "Kod Köməkçisi"ni ayrıca açmasa da alət dövrəsinə girilir.
-    if (agentMode || model.alwaysTools) {
+    // alwaysTools: Alina 1.8 alətləri həmişə işlədir.
+    // toolsWithImages: Alina 1.7 yalnız şəkil göndəriləndə alət dövrəsinə girir.
+    if (toolsEnabled(model, req)) {
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("X-Accel-Buffering", "no");
