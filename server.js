@@ -299,7 +299,11 @@ Mürəkkəb mövzuları addım-addım, gündəlik həyatdan sadə bənzətmələ
 Hazır cavabı verməkdənsə, düşünməyə yönləndirməyə üstünlük ver.`,
   },
 };
-const DEFAULT_MODEL_ID = "alina-1.6";
+// İlk dəfə girən istifadəçinin seçili modeli. Əvvəl alina-1.6 idi; 1.7 həm
+// əsas dördlükdədir, həm də şəkil/sənəd oxuya bilir — yeni istifadəçi üçün
+// daha uyğun başlanğıcdır. (Modeli əvvəl seçmiş istifadəçilərdə seçim
+// localStorage-də qalır, bu dəyər yalnız ilk girişə təsir edir.)
+const DEFAULT_MODEL_ID = "alina-1.7";
 const getModel = (id) => MODELS[id] || MODELS[DEFAULT_MODEL_ID];
 
 // ============================================================
@@ -310,7 +314,7 @@ const getModel = (id) => MODELS[id] || MODELS[DEFAULT_MODEL_ID];
 const MODEL_I18N = {
   en: {
     "alina-1.6": { tag: "Analytical Assistant", desc: "For deep analysis, reports and complex problems." },
-    "alina-1.7": { tag: "Analytical Assistant Pro", desc: "Upgraded Alina — with image analysis." },
+    "alina-1.7": { tag: "Document & Image Analyst", desc: "Reads figures from images and documents, then verifies the maths with code." },
     "alina-1.8": { tag: "Analytical Assistant Max", desc: "The strongest analyst — verifies maths with code and facts on the web." },
     "keyla-5.8": { tag: "Code Specialist", desc: "A strong model for programming, debugging and architecture." },
     "vella-1.0": { tag: "B2B CRM & Sales", desc: "Sales automation, corporate analytics and B2B customer service." },
@@ -321,7 +325,7 @@ const MODEL_I18N = {
   },
   ru: {
     "alina-1.6": { tag: "Аналитический помощник", desc: "Для глубокого анализа, отчётов и сложных задач." },
-    "alina-1.7": { tag: "Аналитический помощник Pro", desc: "Улучшенная Alina — с анализом изображений." },
+    "alina-1.7": { tag: "Аналитик документов и изображений", desc: "Считывает цифры с изображений и документов и проверяет расчёт кодом." },
     "alina-1.8": { tag: "Аналитический помощник Max", desc: "Сильнейший аналитик — проверяет расчёты кодом, факты в интернете." },
     "keyla-5.8": { tag: "Специалист по коду", desc: "Мощная модель для программирования, отладки и архитектуры." },
     "vella-1.0": { tag: "B2B CRM и продажи", desc: "Автоматизация продаж, корпоративная аналитика и B2B-сервис." },
@@ -332,7 +336,7 @@ const MODEL_I18N = {
   },
   tr: {
     "alina-1.6": { tag: "Analitik Asistan", desc: "Derin analiz, raporlar ve karmaşık problemler için." },
-    "alina-1.7": { tag: "Analitik Asistan Pro", desc: "Geliştirilmiş Alina — görsel analiz desteğiyle." },
+    "alina-1.7": { tag: "Belge ve Görsel Analisti", desc: "Görsel ve belgelerden sayıyı okur, hesabı kodla doğrular." },
     "alina-1.8": { tag: "Analitik Asistan Max", desc: "En güçlü analist — hesabı kodla, bilgiyi internetle doğrular." },
     "keyla-5.8": { tag: "Kod Uzmanı", desc: "Programlama, hata ayıklama ve mimari için güçlü model." },
     "vella-1.0": { tag: "B2B CRM & Satış", desc: "Satış otomasyonu, kurumsal analitik ve B2B müşteri hizmetleri." },
@@ -886,9 +890,29 @@ async function runToolCall(name, argsJson) {
 // Alət-çağırış dövrü: model alət istəyənə qədər (maks. 4 dəfə) icra edib
 // nəticəni geri ötürür, sonda son mətn cavabını qaytarır. Bu qeyri-stream
 // (bloklayıcı) işləyir — nəticə hazır olanda bir dəfəyə göndərilir.
+// Alət dövrəsinin İKİNCİ və sonrakı addımlarında şəkilləri çıxarır.
+// Səbəb: bir şəkil ~3400 token dəyərindədir və hər dövrədə yenidən
+// göndərilirdi. Model onu artıq birinci addımda oxuyub — çıxardığı rəqəmlər
+// alət çağırışında və nəticəsində qalır, ona görə şəkil təkrar lazım deyil.
+// Bu olmadan şəkil + alət birləşməsi dəqiqəlik token limitini aşırdı.
+function stripImages(messages) {
+  return messages.map((m) => {
+    if (!Array.isArray(m.content)) return m;
+    const texts = m.content.filter((p) => p.type === "text").map((p) => p.text);
+    const imgCount = m.content.length - texts.length;
+    if (!imgCount) return m;
+    return {
+      ...m,
+      content: `${texts.join("\n")}\n\n[${imgCount} şəkil yuxarıda oxundu — məzmunu artıq çıxarılıb]`.trim(),
+    };
+  });
+}
+
 async function runAgentLoop(groqMessages, model, onStep = () => {}) {
-  const messages = [...groqMessages];
+  let messages = [...groqMessages];
   for (let i = 0; i < 4; i++) {
+    // İlk addımdan sonra şəkli daşımırıq — bax: stripImages
+    if (i === 1) messages = stripImages(messages);
     const resp = await groqRequest({
       model: model.groqModel,
       messages,
@@ -947,22 +971,40 @@ async function groqRequest(bodyObj) {
   let resp = await doFetch(bodyObj);
 
   // Sürət limiti (429): Groq cavabında "try again in 5.7675s" kimi gözləmə
-  // müddəti göstərir. Bir dəfə gözləyib təkrar cəhd edirik — Kod Köməkçisi
-  // rejimi bir sualda 3-4 çağırış edir və dəqiqəlik token limitinə asan
-  // dəyir; təkrar olmasa istifadəçi səbəbsiz xəta görürdü.
-  if (resp.status === 429) {
+  // müddəti göstərir və biz məhz o qədər gözləyirik.
+  //
+  // Niyə DÖVRƏ, bir dəfə yox: alət rejimi bir sualda 2-4 çağırış edir və
+  // hamısı eyni dəqiqəlik büdcədən (8000 TPM) yeyir. Tək təkrar cəhd zamanı
+  // ikinci 429 gəlirdi və orada Groq cəmi 400 ms gözləmək istəyirdi — yəni
+  // bir addım da davam etsəydik keçəcəkdi, amma kod artıq təslim olurdu.
+  // 5 cəhd: şəkil + alət birləşməsi bu tarifdə (8000 TPM) bir dəqiqəyə
+  // sığmır — şəkilli sorğu təkbaşına ~6000 token, ikinci çağırış ~4600.
+  // Yəni sual qaçılmaz olaraq iki dəqiqəlik pəncərəyə bölünür və kod bunu
+  // səbirlə gözləməlidir, əks halda istifadəçi işləyən funksiyanı sınmış
+  // görür.
+  const MAX_429_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_429_ATTEMPTS && resp.status === 429; attempt++) {
     const errText = await resp.text();
-    const m = errText.match(/try again in ([\d.]+)s/i);
-    const retryAfter = Number(resp.headers.get("retry-after")) || (m ? Number(m[1]) : 0);
-    const waitMs = Math.min(Math.max((retryAfter || 2) * 1000 + 300, 500), 12000);
-    console.warn(`Groq sürət limiti (429) — ${Math.round(waitMs / 1000)}s gözlənilir və təkrar cəhd edilir.`);
+    const m = errText.match(/try again in ([\d.]+)(m?s)/i);
+    const headerWait = Number(resp.headers.get("retry-after"));
+    let hintMs = 0;
+    if (m) hintMs = m[2].toLowerCase() === "ms" ? Number(m[1]) : Number(m[1]) * 1000;
+    else if (headerWait) hintMs = headerWait * 1000;
+
+    if (attempt === MAX_429_ATTEMPTS - 1) {
+      // Sonda dayanırıq — istifadəçini sonsuz gözlətmək olmaz
+      return { failed: true, status: 429, errText, rateLimited: true };
+    }
+    const waitMs = Math.min(Math.max(hintMs + 400, 400), 30000);
+    console.warn(
+      `Groq sürət limiti (429), cəhd ${attempt + 1}/${MAX_429_ATTEMPTS - 1} — ${(waitMs / 1000).toFixed(1)}s gözlənilir.`
+    );
     await new Promise((r) => setTimeout(r, waitMs));
     resp = await doFetch(bodyObj);
-    if (!resp.ok) {
-      const err2 = await resp.text();
-      return { failed: true, status: resp.status, errText: err2, rateLimited: resp.status === 429 };
-    }
-    return resp;
+  }
+  if (resp.status === 429) {
+    const errText = await resp.text();
+    return { failed: true, status: 429, errText, rateLimited: true };
   }
 
   if (!resp.ok) {
@@ -1048,6 +1090,10 @@ async function buildGroqMessages(req, model) {
 // ============================================================
 const TPM_BUDGET = Number(process.env.GROQ_TPM_BUDGET || 7600);
 const MIN_ANSWER_TOKENS = 800;
+// Bir şəklin təxmini token dəyəri. Ölçüldü: 400x200 şəkilli sorğuda Groq
+// 6917 token "tələb olunan" saydı, mətn hissəsi isə ~1400 token idi — yəni
+// şəkil təkbaşına ~3400 token. Əvvəlki 1200 qiyməti büdcəni aldadırdı.
+const IMAGE_TOKENS = 3400;
 
 function estimateTokens(messages) {
   let chars = 0;
@@ -1060,12 +1106,13 @@ function estimateTokens(messages) {
         if (part.type === "text") chars += (part.text || "").length;
         // base64 şəklin uzunluğu token sayı ilə mütənasib deyil — sabit qiymət
         else if (part.type === "image_url") images += 1;
+        // Qeyd: qiymət aşağıda IMAGE_TOKENS ilə vurulur.
       }
     }
     if (m.tool_calls) chars += JSON.stringify(m.tool_calls).length;
   }
   // Latın/Azərbaycan mətnində ~4 simvol ≈ 1 token
-  return Math.ceil(chars / 4) + images * 1200;
+  return Math.ceil(chars / 4) + images * IMAGE_TOKENS;
 }
 
 function budgetedMaxTokens(messages, desired) {
