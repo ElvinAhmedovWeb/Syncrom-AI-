@@ -27,6 +27,7 @@ import {
 } from "firebase/firestore";
 import type { Chat, ChatMessage } from "../types";
 import type { MemoryFact } from "./memory";
+import type { Project } from "./projects";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD2GNLUEGJCr7d_ux6WCYUOUbD-NYgSwt0",
@@ -119,6 +120,7 @@ export async function saveChat(uid: string, chat: Chat): Promise<string> {
     title: chat.title,
     messages: sanitizeMessagesForStorage(chat.messages),
     modelId: chat.modelId ?? null,
+    projectId: chat.projectId ?? null,
     updatedAt: chat.updatedAt,
   };
   if (!chat.id) {
@@ -159,6 +161,30 @@ export async function saveUserMemories(uid: string, facts: MemoryFact[]): Promis
     await setDoc(doc(db, "users", uid, "meta", "memory"), { facts, updatedAt: Date.now() });
   } catch (e) {
     console.warn("Yaddaş saxlanılmadı:", e);
+  }
+}
+
+// ---------- Capricorn layihələri ----------
+// Yaddaş kimi tək sənəddə saxlanılır (users/{uid}/meta/projects) — sayı
+// azdır (maks. 20) və hamısı birlikdə lazım olur.
+export async function loadUserProjects(uid: string): Promise<Project[]> {
+  if (!ensureInit() || !db) return [];
+  try {
+    const snap = await getDoc(doc(db, "users", uid, "meta", "projects"));
+    const items = snap.exists() ? (snap.data().items as Project[] | undefined) : undefined;
+    return Array.isArray(items) ? items : [];
+  } catch (e) {
+    console.warn("Layihələr yüklənmədi:", e);
+    return [];
+  }
+}
+
+export async function saveUserProjects(uid: string, items: Project[]): Promise<void> {
+  if (!ensureInit() || !db) return;
+  try {
+    await setDoc(doc(db, "users", uid, "meta", "projects"), { items, updatedAt: Date.now() });
+  } catch (e) {
+    console.warn("Layihələr saxlanılmadı:", e);
   }
 }
 

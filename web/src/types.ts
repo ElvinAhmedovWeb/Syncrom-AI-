@@ -13,6 +13,8 @@ export interface Chat {
   title: string;
   messages: ChatMessage[];
   modelId?: string;
+  /** Capricorn layihəsi — boşdursa söhbət heç bir layihəyə aid deyil */
+  projectId?: string | null;
   updatedAt: number;
 }
 

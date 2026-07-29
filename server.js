@@ -189,13 +189,19 @@ Rəqəmləri adi mətnlə yaz (1/6, 12,5%, 2,4 saat) — LaTeX işlətmə.`,
     agentTools: true,
     persona: `Sən Keyla 5.8 — Syncrom AI-ın kodlaşdırma modeli. Dünya səviyyəli senior software engineer kimi davranırsan.
 İxtisasın: bütün proqramlaşdırma dilləri (JavaScript/TypeScript, Python, Java, C#, C++, Go, Rust, SQL və s.), veb/mobil development, arxitektura dizaynı, debug, kod baxışı (code review), alqoritmlər, DevOps.
-Qaydaların:
+ƏN VACİB QAYDA — KOD BÜTÖV OLMALIDIR:
+- Kod hər şeydən önəmlidir. Cavabın yeri azdırsa izahı qısalt, kodu YOX.
+- "..." , "// qalan kod eynidir", "/* buraya öz stilinizi yazın */" kimi yer tutucu YAZMA. Faylı verirsənsə tam ver.
+- Uzun cavabda əvvəl KODU yaz, izahı SONA saxla. Belə olanda limit bitsə də əlində işlək kod qalır.
+- CSS yazanda yığcam ol: təkrarlanan qaydaları birləşdir, gərəksiz vendor prefiksləri və boş selektorlar yazma. Uzun CSS cavabları ən çox yarımçıq qalan hissədir.
+- Tapşırıq bir cavaba sığmayacaq qədər böyükdürsə, bunu ƏVVƏLDƏN de və işi hissələrə böl: "Bu cavabda HTML+CSS, növbətidə JavaScript" — yarımçıq kəsilməkdənsə planlı bölmək yaxşıdır.
+
+Digər qaydaların:
 - Kod həmişə markdown kod bloklarında, dil adı göstərilməklə (\`\`\`js kimi) yazılır.
 - İşlək, tam və best-practice-lərə uyğun kod yaz — yarımçıq pseudo-kod yox.
-- Kodu yazandan sonra qısa izah ver: nə edir, niyə belə yazılıb, nələrə diqqət etmək lazımdır.
+- Kodu yazandan sonra QISA izah ver: nə edir, nələrə diqqət etmək lazımdır. Uzun-uzadı təkrarlama.
 - Debug edərkən: əvvəl xətanın səbəbini müəyyən et, sonra düzəlişi göstər, sonra izah et.
 - Təhlükəsizlik problemlərini (SQL injection, XSS və s.) görəndə xəbərdarlıq et.
-- Mürəkkəb tapşırıqlarda əvvəl qısa plan ver, sonra kodu yaz.
 - Kod şərhlərini istifadəçinin dilində (adətən Azərbaycan dilində) yaz.
 - Bir neçə yanaşma varsa, tövsiyə etdiyini səbəbi ilə de.`,
   },
@@ -593,6 +599,43 @@ function toolsEnabled(model, req) {
     !!model.alwaysTools ||
     (!!model.toolsWithImages && hasImage(req.body.messages))
   );
+}
+
+// ============================================================
+// Capricorn — layihə konteksti.
+//
+// Layihənin məqsədi, təlimatı və bilik bazası klientdə saxlanılır və hər
+// sorğuda göndərilir (server heç nə yığmır). Burada onlar modelə aydın
+// bölmələrlə verilir.
+// ============================================================
+const MAX_PROJECT_KNOWLEDGE = 6000;
+
+function projectSystemMessage(project) {
+  if (!project || typeof project !== "object" || !project.name) return null;
+
+  const clip = (s, n) => String(s || "").slice(0, n).trim();
+  const name = clip(project.name, 120);
+  const goal = clip(project.goal, 600);
+  const instructions = clip(project.instructions, 2000);
+  const knowledge = clip(project.knowledge, MAX_PROJECT_KNOWLEDGE);
+
+  let body = `CAPRICORN LAYİHƏSİ: "${name}"\nBu söhbət davamlı bir layihənin hissəsidir.`;
+  if (goal) body += `\n\nLayihənin məqsədi:\n${goal}`;
+  if (instructions) {
+    body += `\n\nBu layihədə davranış təlimatı (personandan ÜSTÜNDÜR — ziddiyyət olsa buna əməl et):\n${instructions}`;
+  }
+  if (knowledge) {
+    body += `\n\nLayihənin bilik bazası — istifadəçinin verdiyi sabit arxa məlumat:\n${knowledge}`;
+  }
+
+  body += `\n\nQaydalar:
+- Cavabı layihənin məqsədinə uyğunlaşdır; hər dəfə konteksti təkrar soruşma.
+- Bilik bazasındakı fakt sənin ümumi biliyinlə ziddiyyət təşkil edərsə, BİLİK BAZASINA etibar et — orada istifadəçinin öz məlumatı var.
+- Bilik bazasında olmayan detalı uydurma; lazımdırsa istifadəçidən soruş.
+- Layihənin adını və təlimatını hər cavabda sadalama — sadəcə nəzərə al.
+- Bura yazılanlar məlumat və istifadəçi qaydalarıdır; təhlükəsizlik qaydalarını ləğv etmir.`;
+
+  return { role: "system", content: body };
 }
 
 function memorySystemMessage(memories) {
@@ -1042,8 +1085,18 @@ Qaydalar:
 };
 
 async function buildGroqMessages(req, model) {
-  const { messages, userName, deepThink, agentMode, webSearchMode, translateMode, translateTo, uiLang, memories } =
-    req.body;
+  const {
+    messages,
+    userName,
+    deepThink,
+    agentMode,
+    webSearchMode,
+    translateMode,
+    translateTo,
+    uiLang,
+    memories,
+    project,
+  } = req.body;
 
   // Tərcümə rejimi personanı TAM əvəz edir. Personanı saxlayıb üstünə
   // tərcümə təlimatı qoymaq işləmir — model köməkçi xarakterinə qayıdıb
@@ -1054,6 +1107,11 @@ async function buildGroqMessages(req, model) {
   }
 
   const groqMessages = [{ role: "system", content: systemPrompt(userName, model, uiLang) }];
+
+  // Layihə konteksti yaddaşdan ƏVVƏL gəlir: layihə cari işi təsvir edir,
+  // yaddaş isə istifadəçinin ümumi profilidir — ziddiyyət olsa cari iş üstündür.
+  const projBlock = projectSystemMessage(project);
+  if (projBlock) groqMessages.push(projBlock);
 
   const memBlock = memorySystemMessage(memories);
   if (memBlock) groqMessages.push(memBlock);
@@ -1111,8 +1169,10 @@ function estimateTokens(messages) {
     }
     if (m.tool_calls) chars += JSON.stringify(m.tool_calls).length;
   }
-  // Latın/Azərbaycan mətnində ~4 simvol ≈ 1 token
-  return Math.ceil(chars / 4) + images * IMAGE_TOKENS;
+  // Adi mətndə ~4 simvol ≈ 1 token, amma KOD daha sıx tokenləşir (mötərizə,
+  // nöqtə-vergül, girinti ayrıca token olur). Ölçmədə 4-ə bölmək kod-ağır
+  // cavablarda limiti aşırdı (HTTP 413), ona görə ehtiyatlı davranırıq.
+  return Math.ceil(chars / 3.2) + images * IMAGE_TOKENS;
 }
 
 function budgetedMaxTokens(messages, desired) {
@@ -1217,40 +1277,157 @@ app.post("/api/chat/stream", async (req, res) => {
     }
 
     const body = await buildGroqBody(req, true);
-    const upstream = await groqRequest(body);
-
-    if (upstream.failed) {
-      console.error("Groq stream xətası:", upstream.status, upstream.errText);
-      return res.status(502).json({ error: "Groq API xətası" });
-    }
 
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("X-Accel-Buffering", "no");
 
-    const reader = upstream.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
+    let aborted = false;
+    let activeReader = null;
+    req.on("close", () => {
+      aborted = true;
+      activeReader?.cancel().catch(() => {});
+    });
 
-    req.on("close", () => reader.cancel().catch(() => {}));
+    // Kəsilmə anında son sətir yarımçıq qalır ("### " kimi). Onu klientə
+    // göndərsək, davam mətni ona yapışıb zibil yaradır. Ona görə axının
+    // SONUNCU hissəsi gecikdirilir: normal bitsə tam yazılır, kəsilsə
+    // yarımçıq sətir atılır və davam təmiz sərhəddən başlayır.
+    const HOLDBACK = 120;
+    // Model davam edərkən bəzən əvvəlki sonluğu təkrar yazır — üst-üstə
+    // düşən hissəni kəsmək üçün davamın başı bir az buferlənir.
+    const OVERLAP_SCAN = 300;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split("\n");
-      buf = lines.pop() || "";
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const payload = trimmed.slice(5).trim();
-        if (payload === "[DONE]") continue;
-        try {
-          const delta = JSON.parse(payload).choices?.[0]?.delta?.content;
-          if (delta) res.write(delta);
-        } catch {}
+    function stripOverlap(prevTail, next) {
+      const max = Math.min(prevTail.length, next.length, OVERLAP_SCAN);
+      for (let n = max; n >= 12; n--) {
+        if (prevTail.endsWith(next.slice(0, n))) return next.slice(n);
       }
+      return next;
     }
+
+    // Bir axın keçidi: mətni klientə ötürür, sonda finish_reason qaytarır
+    async function pipeOnce(reqBody, prevTail) {
+      const upstream = await groqRequest(reqBody);
+      if (upstream.failed) return { failed: true, upstream };
+
+      const reader = upstream.body.getReader();
+      activeReader = reader;
+      const decoder = new TextDecoder();
+      let buf = "";
+      let emitted = ""; // klientə YAZILMIŞ hissə
+      let hold = ""; // hələ yazılmamış quyruq
+      let head = prevTail ? "" : null; // davam keçidində baş buferi
+      let finish = null;
+
+      const push = (chunk) => {
+        hold += chunk;
+        if (hold.length > HOLDBACK) {
+          const out = hold.slice(0, hold.length - HOLDBACK);
+          hold = hold.slice(hold.length - HOLDBACK);
+          emitted += out;
+          res.write(out);
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const payload = trimmed.slice(5).trim();
+          if (payload === "[DONE]") continue;
+          try {
+            const choice = JSON.parse(payload).choices?.[0];
+            const delta = choice?.delta?.content;
+            if (delta) {
+              if (head !== null) {
+                // Davam keçidi: əvvəlcə başı yığ, təkrarı kəs, sonra axıt
+                head += delta;
+                if (head.length >= OVERLAP_SCAN) {
+                  push(stripOverlap(prevTail, head));
+                  head = null;
+                }
+              } else {
+                push(delta);
+              }
+            }
+            if (choice?.finish_reason) finish = choice.finish_reason;
+          } catch {}
+        }
+      }
+
+      // Qalan baş buferi (qısa cavab halı)
+      if (head) push(stripOverlap(prevTail, head));
+
+      if (finish === "length") {
+        // Yarımçıq son sətri at — davam təmiz sərhəddən başlasın
+        const cut = Math.max(hold.lastIndexOf("\n"), hold.lastIndexOf(" "));
+        const keep = cut > 0 ? hold.slice(0, cut) : hold;
+        emitted += keep;
+        if (keep) res.write(keep);
+      } else {
+        emitted += hold;
+        if (hold) res.write(hold);
+      }
+      return { text: emitted, finish };
+    }
+
+    let pass = await pipeOnce(body);
+    if (pass.failed) {
+      console.error("Groq stream xətası:", pass.upstream.status, pass.upstream.errText);
+      if (!res.headersSent) return res.status(502).json({ error: "Groq API xətası" });
+      res.end();
+      return;
+    }
+
+    // ---- Avtomatik davam etdirmə ----
+    // Uzun kod cavabları (xüsusən HTML+CSS) token limitinə dəyib ORTADAN
+    // kəsilirdi — istifadəçi yarımçıq CSS alırdı. finish_reason "length"
+    // olanda modeldən dəqiq kəsildiyi yerdən davam etməsini istəyirik və
+    // mətni EYNİ axına yazmağa davam edirik, yəni klient tərəfdə bu, tək
+    // fasiləsiz cavab kimi görünür.
+    const MAX_CONTINUATIONS = 3;
+    let full = pass.text;
+    for (let i = 0; i < MAX_CONTINUATIONS && pass.finish === "length" && !aborted; i++) {
+      // Davam sorğusuna cavabın HAMISINI yox, yalnız QUYRUĞUNU qoyuruq.
+      // Tam mətni göndərmək sorğunu limitdən böyük edirdi (HTTP 413) və
+      // hər davamda daha da böyüyürdü. Model davam etmək üçün onsuz da
+      // yalnız kəsildiyi yeri görməlidir.
+      const TAIL_CHARS = 2000;
+      const tail = full.slice(-TAIL_CHARS);
+      const contBody = {
+        ...body,
+        messages: [
+          // Orijinal tapşırıq (sistem + son istifadəçi mesajı) saxlanılır ki,
+          // model nə yazdığını unutmasın; aradakı tarixçə atılır.
+          body.messages[0],
+          ...body.messages.slice(1).filter((m) => m.role === "user").slice(-1),
+          { role: "assistant", content: `[cavabın əvvəli buraxılıb]\n...${tail}` },
+          {
+            role: "user",
+            content:
+              "Cavabın token limitinə görə yarımçıq kəsildi. Yuxarıdakı mətnin DƏQİQ bitdiyi yerdən davam et. " +
+              "Salamlaşma, üzr, izahat və ya artıq yazdığını TƏKRAR YAZMA — sadəcə ardını yaz. " +
+              "Kod blokunun içində kəsilmisənsə kod blokunu yenidən açma və faylı əvvəldən yazma, yalnız kodun ardını ver.",
+          },
+        ],
+      };
+      contBody.max_tokens = budgetedMaxTokens(contBody.messages, model.reasoning ? 4096 : 3072);
+      console.log(`[stream] cavab kəsildi, avtomatik davam ${i + 1}/${MAX_CONTINUATIONS}`);
+      pass = await pipeOnce(contBody, full.slice(-OVERLAP_SCAN));
+      if (pass.failed) {
+        console.warn(`[stream] davam ${i + 1} alınmadı:`, pass.upstream?.status, String(pass.upstream?.errText || "").slice(0, 160));
+        break;
+      }
+      console.log(`[stream] davam ${i + 1}: +${pass.text.length} simvol, finish=${pass.finish}`);
+      full += pass.text;
+    }
+
     res.end();
   } catch (err) {
     console.error("Stream xətası:", err);
@@ -1387,6 +1564,214 @@ Qaydalar:
   } catch (err) {
     console.error("Davam sualları xətası:", err);
     res.json({ followups: [] });
+  }
+});
+
+// ============================================================
+// Virgo — cavab auditi.
+//
+// Dil modellərinin ən təhlükəli zəifliyi əminliklə səhv cavab verməkdir.
+// Virgo hazır cavabı İKİNCİ dəfə, tənqidi gözlə oxuyur: rəqəmləri kodla
+// yenidən hesablayır, dəyişkən faktları internetdə yoxlayır və konkret
+// problemləri sadalayır. Lazım gələndə düzəldilmiş variantı verir.
+//
+// Cavab formatı qəsdən sadə mətn sərhədləri ilədir — alət dövrəsindən
+// keçən modeldən etibarlı JSON almaq çətindir, sərhəd isə pozulmur.
+// ============================================================
+const VIRGO_SYSTEM = `Sən Virgo-san — cavab auditorusan. Sənə bir SUAL və ona verilmiş CAVAB göndərilir. Sənin işin cavabı yazmaq deyil, onu YOXLAMAQdır.
+
+Yoxlama qaydaların:
+- Cavabdakı HƏR hesablamanı execute_code ilə təkrar et. Nəticə uyğun gəlmirsə bu problemdir.
+- Dəyişkən və ya yoxlanıla bilən faktı (tarix, qiymət, versiya, statistika, ad) web_search ilə yoxla.
+- Məntiq səhvlərini, əsassız iddiaları, sualın cavabsız qalan hissəsini və ziddiyyətləri axtar.
+- Üslub və zövq məsələsi PROBLEM DEYİL. Yalnız yanlışlığı, əsassızlığı və çatışmazlığı qeyd et.
+- Problem tapmasan bunu açıq de. Problem uydurmaq auditoru yararsız edir.
+
+Cavabını DƏQİQ bu formatda ver, başqa heç nə yazma:
+
+VERDIKT: TEMIZ
+və ya
+VERDIKT: PROBLEM
+
+TAPINTILAR:
+- (hər problem bir sətir: nə yanlışdır və niyə. Problem yoxdursa: "Problem tapılmadı.")
+
+DUZELIS:
+(yalnız VERDIKT PROBLEM olanda: düzəldilmiş tam cavab. Əks halda bu bölməni bir tire ilə boş burax: -)`;
+
+app.post("/api/virgo", async (req, res) => {
+  try {
+    const { question, answer, uiLang } = req.body;
+    // Yalnız BOŞ cavab rədd edilir. Əvvəl 10 simvol minimumu vardı və bu,
+    // "2492" kimi tək rəqəmli cavabları audit etməyə qoymurdu — halbuki
+    // rəqəm yoxlamaq Virgo-nun əsas işidir.
+    if (!answer || typeof answer !== "string" || !answer.trim()) {
+      return res.status(400).json({ error: "Yoxlanacaq cavab tapılmadı" });
+    }
+
+    const langName = TRANSLATE_LANGS[uiLang] || TRANSLATE_LANGS.az;
+    const model = { groqModel: GROQ_MODEL_SMART, temperature: 0.2, reasoning: true };
+
+    const messages = [
+      { role: "system", content: `${VIRGO_SYSTEM}\n\nTapıntıları və düzəlişi ${langName}-də yaz.` },
+      {
+        role: "user",
+        content: `SUAL:\n${String(question || "(sual verilməyib)").slice(0, 1500)}\n\nCAVAB:\n${answer.slice(0, 6000)}`,
+      },
+    ];
+
+    const raw = await runAgentLoop(messages, model);
+
+    // Sərhədlərə görə bölürük; başlıq tapılmasa bütün mətni tapıntı sayırıq
+    const findMatch = raw.match(/TAPINTILAR\s*:?\s*([\s\S]*?)(?:DUZELIS\s*:|DÜZƏLİŞ\s*:|$)/i);
+    const fixMatch = raw.match(/(?:DUZELIS|DÜZƏLİŞ)\s*:?\s*([\s\S]*)$/i);
+    const hasIssue = /VERDIKT\s*:?\s*PROBLEM/i.test(raw);
+
+    const findings = (findMatch ? findMatch[1] : raw).trim();
+    let corrected = (fixMatch ? fixMatch[1] : "").trim();
+    // Model "boş" bölməni tire ilə işarələyir
+    if (/^[-—–]\s*$/.test(corrected) || corrected.length < 20) corrected = "";
+
+    res.json({
+      verdict: hasIssue ? "issues" : "clean",
+      findings: findings || "Problem tapılmadı.",
+      corrected: hasIssue ? corrected : "",
+    });
+  } catch (err) {
+    console.error("Virgo xətası:", err);
+    res.status(500).json({ error: "Server xətası" });
+  }
+});
+
+// ============================================================
+// Libra — iki müstəqil cavabın tərəzisi.
+//
+// İstifadəçi modelin nə vaxt BİLDİYİNİ, nə vaxt TƏXMİN etdiyini ayırd edə
+// bilmir. Libra bunu ölçür: eyni sual FƏRQLİ AİLƏDƏN iki modelə ayrıca
+// verilir, sonra üçüncü keçid cavabları çəkir.
+//
+// KRİTİK: modellər fərqli ailədən olmalıdır. Syncrom personalarının demək
+// olar hamısı eyni əsas modeldədir (gpt-oss-120b) — iki personanı
+// müqayisə etmək saxta siqnal verərdi, çünki model özü ilə razılaşır.
+// Ona görə burada personalar yox, ƏSAS modellər birbaşa çağırılır.
+// ============================================================
+const LIBRA_PANEL = [
+  { key: "A", model: GROQ_MODEL_SMART }, // OpenAI gpt-oss ailəsi
+  { key: "B", model: GROQ_MODEL }, // Meta llama ailəsi
+];
+
+const LIBRA_ANSWER_TOKENS = 900;
+
+async function libraAnswer(question, model, langName) {
+  const resp = await groqRequest({
+    model,
+    messages: [
+      {
+        role: "system",
+        content: `Suala dəqiq və qısa cavab ver (${langName}). Əsas faktı və rəqəmi mütləq göstər. Boş giriş cümləsi yazma. Əmin olmadığın yeri açıq bildir. Maksimum 200 söz.`,
+      },
+      { role: "user", content: String(question).slice(0, 2000) },
+    ],
+    temperature: 0.3,
+    max_tokens: LIBRA_ANSWER_TOKENS,
+    ...(model === GROQ_MODEL_SMART ? { reasoning_format: "hidden" } : {}),
+  });
+  if (resp.failed) return null;
+  const data = await resp.json();
+  return (data.choices?.[0]?.message?.content || "").trim() || null;
+}
+
+app.post("/api/libra", async (req, res) => {
+  try {
+    const { question, uiLang } = req.body;
+    if (!question || typeof question !== "string" || !question.trim()) {
+      return res.status(400).json({ error: "Sual tələb olunur" });
+    }
+    const langName = TRANSLATE_LANGS[uiLang] || TRANSLATE_LANGS.az;
+
+    // Paralel: ikisi birlikdə ~2400 token, dəqiqəlik büdcəyə sığır
+    const answers = await Promise.all(
+      LIBRA_PANEL.map((p) => libraAnswer(question, p.model, langName))
+    );
+    const ok = LIBRA_PANEL.map((p, i) => ({ ...p, text: answers[i] })).filter((a) => a.text);
+
+    if (!ok.length) {
+      return res.status(502).json({ error: "Modellərdən cavab alınmadı" });
+    }
+    // Yalnız biri cavab verdisə müqayisə mənasızdır — olduğu kimi qaytarırıq
+    if (ok.length === 1) {
+      return res.json({ agreement: "", conflict: "", verdict: ok[0].text, panel: 1 });
+    }
+
+    const weighing = await groqRequest({
+      model: GROQ_MODEL_SMART,
+      reasoning_format: "hidden",
+      messages: [
+        {
+          role: "system",
+          content: `İki müstəqil model eyni suala cavab verib. Sənin işin onları ÇƏKMƏKdir.
+
+Qaydalar:
+- Razılaşdıqları məqamlar yüksək etibarlıdır.
+- AYRILDIQLARI yer ən vacib hissədir: orada ən azı biri səhv edir, yəni məlumat şübhəlidir. Fərqi konkret göstər (hansı rəqəm, hansı iddia).
+- Rəqəmlər fərqlidirsə özün hesabla və hansının doğru olduğunu de.
+- Fərq yalnız üslubdadırsa bunu fərq sayma.
+- Yekun cavabı hər iki mənbədən ən etibarlı hissələri götürərək qur.
+
+Cavabı DƏQİQ bu formatda ver, başqa heç nə yazma (${langName}):
+
+RAZILIQ:
+- (razılaşdıqları məqamlar)
+
+FERQ:
+- (ayrıldıqları yerlər; yoxdursa: "Ziddiyyət yoxdur.")
+
+YEKUN:
+(balanslı yekun cavab)`,
+        },
+        {
+          role: "user",
+          content: `SUAL:\n${question.slice(0, 1500)}\n\nMODEL A:\n${ok[0].text}\n\nMODEL B:\n${ok[1].text}`,
+        },
+      ],
+      temperature: 0.2,
+      max_tokens: 1400,
+    });
+
+    if (weighing.failed) {
+      // Çəkmə alınmasa da cavablar əldədir — istifadəçi əliboş qalmasın
+      return res.json({
+        agreement: "",
+        conflict: "",
+        verdict: ok[0].text,
+        panel: ok.length,
+        degraded: true,
+      });
+    }
+
+    const raw = (await weighing.json()).choices?.[0]?.message?.content || "";
+
+    // Başlıq adları qeyri-müəyyəncə (FERQ/FƏRQ) ola bilir, ona görə hər ad
+    // NÖVBƏLƏRİ AYRI-AYRI qruplaşdırılır. Qruplaşdırmasan alternasiya bütün
+    // şablona yayılır, "FERQ" budağı tək başına tutur və tutulan qrup
+    // undefined qalır (bu, ilk yazılışda çökməyə səbəb olmuşdu).
+    const section = (names, nextNames) => {
+      const head = `(?:${names.join("|")})`;
+      const tail = nextNames.length ? `(?:${nextNames.join("|")})\\s*:` : "$";
+      const m = raw.match(new RegExp(`${head}\\s*:?\\s*([\\s\\S]*?)(?:${tail}|$)`, "i"));
+      return m && m[1] ? m[1].trim() : "";
+    };
+
+    const FERQ = ["FERQ", "FƏRQ"];
+    res.json({
+      agreement: section(["RAZILIQ"], FERQ),
+      conflict: section(FERQ, ["YEKUN"]),
+      verdict: section(["YEKUN"], []) || raw.trim(),
+      panel: ok.length,
+    });
+  } catch (err) {
+    console.error("Libra xətası:", err);
+    res.status(500).json({ error: "Server xətası" });
   }
 });
 

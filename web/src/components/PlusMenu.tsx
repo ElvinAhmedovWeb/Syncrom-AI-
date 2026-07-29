@@ -16,6 +16,8 @@ interface Props {
   onToggleAgentMode: () => void;
   webSearchActive: boolean;
   onToggleWebSearch: () => void;
+  libraActive: boolean;
+  onToggleLibra: () => void;
   translateActive: boolean;
   onToggleTranslate: () => void;
   translateTo: string;
@@ -36,6 +38,8 @@ export default function PlusMenu({
   onToggleAgentMode,
   webSearchActive,
   onToggleWebSearch,
+  libraActive,
+  onToggleLibra,
   translateActive,
   onToggleTranslate,
   translateTo,
@@ -186,6 +190,26 @@ export default function PlusMenu({
               <small>{t("plus.webSearchSub")}</small>
             </span>
             {webSearchActive && <span className="plus-menu-check">✓</span>}
+          </button>
+
+          <button
+            type="button"
+            className={`plus-menu-item${libraActive ? " active" : ""}`}
+            onClick={() => {
+              onToggleLibra();
+              closeAll();
+            }}
+          >
+            <span className="plus-menu-icon">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v18M7 21h10M3 7h18M6 7l-3 6h6zM18 7l-3 6h6z" />
+              </svg>
+            </span>
+            <span className="plus-menu-text">
+              <b>{t("libra.name")}</b>
+              <small>{t("libra.sub")}</small>
+            </span>
+            {libraActive && <span className="plus-menu-check">✓</span>}
           </button>
 
           <button

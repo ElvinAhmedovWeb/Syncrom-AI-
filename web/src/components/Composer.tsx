@@ -38,6 +38,8 @@ interface Props {
   onToggleAgentMode: () => void;
   webSearchActive: boolean;
   onToggleWebSearch: () => void;
+  libraActive: boolean;
+  onToggleLibra: () => void;
   translateActive: boolean;
   onToggleTranslate: () => void;
   translateTo: string;
@@ -71,6 +73,8 @@ export default function Composer({
   onToggleAgentMode,
   webSearchActive,
   onToggleWebSearch,
+  libraActive,
+  onToggleLibra,
   translateActive,
   onToggleTranslate,
   translateTo,
@@ -121,7 +125,7 @@ export default function Composer({
 
   return (
     <footer className="composer">
-      {(imageGenActive || deepThinkActive || agentModeActive || webSearchActive || translateActive) && (
+      {(imageGenActive || deepThinkActive || agentModeActive || webSearchActive || translateActive || libraActive) && (
         <div className="mode-pills">
           {imageGenActive && (
             <span className="mode-pill">
@@ -158,6 +162,15 @@ export default function Composer({
                   {a.ratio}
                 </button>
               ))}
+            </span>
+          )}
+          {libraActive && (
+            <span className="mode-pill">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v18M7 21h10M3 7h18M6 7l-3 6h6zM18 7l-3 6h6z" />
+              </svg>
+              {t("libra.name")}
+              <button type="button" onClick={onToggleLibra} aria-label={t("composer.turnOff")}>×</button>
             </span>
           )}
           {translateActive && (
@@ -218,6 +231,8 @@ export default function Composer({
         <PlusMenu
           onUploadImage={() => fileInputRef.current?.click()}
           visionEnabled={visionEnabled}
+          libraActive={libraActive}
+          onToggleLibra={onToggleLibra}
           imageGenEnabled={imageGenEnabled}
           imageGenActive={imageGenActive}
           onToggleImageGen={onToggleImageGen}

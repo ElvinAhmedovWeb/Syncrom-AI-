@@ -1,4 +1,5 @@
 import type { ChatMessage, ModelsResponse } from "../types";
+import type { ProjectContext } from "./projects";
 
 export async function fetchModels(lang?: string): Promise<ModelsResponse | null> {
   try {
@@ -30,6 +31,8 @@ export interface StreamChatArgs {
   uiLang?: string;
   /** Yaddaşdaki faktlar — server saxlamır, hər sorğuda göndərilir */
   memories?: string[];
+  /** Capricorn layihəsinin konteksti (məqsəd, təlimat, bilik bazası) */
+  project?: ProjectContext;
   signal: AbortSignal;
   onChunk: (chunk: string) => void;
   onStep?: (step: AgentStep) => void;
@@ -90,6 +93,7 @@ export async function streamChat({
   translateTo,
   uiLang,
   memories,
+  project,
   signal,
   onChunk,
   onStep,
@@ -108,6 +112,7 @@ export async function streamChat({
       translateTo,
       uiLang,
       memories,
+      project,
     }),
     signal,
   });
@@ -165,6 +170,51 @@ export async function fetchFollowups(
   } catch {
     return [];
   }
+}
+
+export interface VirgoResult {
+  verdict: "clean" | "issues";
+  findings: string;
+  /** Yalnız problem tapılanda dolu olur */
+  corrected: string;
+}
+
+export async function auditAnswer(
+  question: string,
+  answer: string,
+  uiLang: string
+): Promise<VirgoResult> {
+  const res = await fetch("/api/virgo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, answer, uiLang }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Virgo xətası");
+  }
+  return (await res.json()) as VirgoResult;
+}
+
+export interface LibraResult {
+  agreement: string;
+  conflict: string;
+  verdict: string;
+  panel: number;
+  degraded?: boolean;
+}
+
+export async function askLibra(question: string, uiLang: string): Promise<LibraResult> {
+  const res = await fetch("/api/libra", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, uiLang }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Libra xətası");
+  }
+  return (await res.json()) as LibraResult;
 }
 
 export async function generateTitle(messages: ChatMessage[]): Promise<string | null> {

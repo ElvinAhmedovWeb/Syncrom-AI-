@@ -5,6 +5,7 @@ import AccountMenu from "../components/AccountMenu";
 import { isFirebaseReady, watchAuth, logout, type User } from "../lib/firebase";
 import { createFirestoreChatStorage, createLocalChatStorage } from "../lib/storage";
 import { createFirestoreMemoryStore, createLocalMemoryStore } from "../lib/memory";
+import { createFirestoreProjectStore, createLocalProjectStore } from "../lib/projects";
 import { useT } from "../lib/i18n";
 
 const GUEST_KEY = "syncrom_guest";
@@ -30,6 +31,10 @@ export default function ChatPage() {
   );
   const memoryStore = useMemo(
     () => (uid ? createFirestoreMemoryStore(uid) : createLocalMemoryStore()),
+    [uid]
+  );
+  const projectStore = useMemo(
+    () => (uid ? createFirestoreProjectStore(uid) : createLocalProjectStore()),
     [uid]
   );
 
@@ -141,6 +146,7 @@ export default function ChatPage() {
       suggestions={suggestions}
       storage={storage}
       memoryStore={memoryStore}
+      projectStore={projectStore}
       userName={displayName}
       storageKeyForModel="syncrom_model"
       inputPlaceholder={t("composer.placeholder")}

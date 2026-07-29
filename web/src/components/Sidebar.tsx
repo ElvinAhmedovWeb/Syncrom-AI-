@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useI18n, type TFunc } from "../lib/i18n";
 import { isUntitled } from "../hooks/useChatController";
+import CapricornPicker, { type CapricornApi } from "./CapricornPanel";
 import type { Chat, ModelInfo } from "../types";
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
   footer?: ReactNode;
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
+  capricorn?: CapricornApi;
 }
 
 function relativeTime(ts: number, t: TFunc, locale: string): string {
@@ -51,6 +53,7 @@ export default function Sidebar({
   footer,
   darkMode,
   onToggleDarkMode,
+  capricorn,
 }: Props) {
   const { t, locale } = useI18n();
   const [query, setQuery] = useState("");
@@ -61,9 +64,15 @@ export default function Sidebar({
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isSearching = query.trim().length > 0;
+  // Capricorn layihəsi seçiliykən yalnız onun söhbətləri görünür; layihə
+  // seçilməyibsə heç bir layihəyə aid olmayan söhbətlər göstərilir —
+  // beləliklə layihə işi gündəlik söhbətlərə qarışmır.
+  const activeProjectId = capricorn?.activeProject?.id ?? null;
+  const scopedChats = chats.filter((c) => (c.projectId ?? null) === activeProjectId);
+
   const filteredChats = isSearching
-    ? chats.filter((c) => (c.title || "").toLowerCase().includes(query.trim().toLowerCase()))
-    : chats;
+    ? scopedChats.filter((c) => (c.title || "").toLowerCase().includes(query.trim().toLowerCase()))
+    : scopedChats;
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -201,6 +210,8 @@ export default function Sidebar({
           </button>
         </div>
 
+        {capricorn && <CapricornPicker api={capricorn} />}
+
         <motion.button
           type="button"
           className="new-chat-btn"
@@ -216,7 +227,7 @@ export default function Sidebar({
           <span>{t("sidebar.newChat")}</span>
         </motion.button>
 
-        {chats.length > 0 && (
+        {scopedChats.length > 0 && (
           <div className="chat-search">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="7" />
@@ -234,7 +245,7 @@ export default function Sidebar({
         )}
 
         <div className="chat-list">
-          {chats.length === 0 ? (
+          {scopedChats.length === 0 ? (
             <>
               <p className="section-label">{t("sidebar.chats")}</p>
               <div className="chat-empty">{t("sidebar.empty")}</div>

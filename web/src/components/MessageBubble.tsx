@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { renderMarkdown, type ArtifactKind } from "../lib/markdown";
 import { EASE_OUT } from "../lib/motion";
 import { useT, type TFunc, type TKey } from "../lib/i18n";
-import type { AgentStep } from "../lib/api";
+import type { AgentStep, VirgoResult } from "../lib/api";
 import type { Artifact } from "./ArtifactPanel";
 import type { ChatMessage } from "../types";
 
@@ -22,6 +22,11 @@ interface Props {
   steps?: AgentStep[];
   followups?: string[];
   onFollowup?: (q: string) => void;
+  /** Virgo auditi — yalnız yoxlanan mesajda dolu olur */
+  virgo?: { state: "loading" | "done"; result?: VirgoResult };
+  onVirgo?: () => void;
+  onVirgoDismiss?: () => void;
+  onVirgoApply?: () => void;
 }
 
 // Kod blokundaki düymələr markdown-dan XAM HTML kimi gəlir (React elementi
@@ -103,6 +108,10 @@ export default function MessageBubble({
   steps,
   followups,
   onFollowup,
+  virgo,
+  onVirgo,
+  onVirgoDismiss,
+  onVirgoApply,
 }: Props) {
   const t = useT();
   const isUser = message.role === "user";
@@ -185,7 +194,44 @@ export default function MessageBubble({
                 ↻ {t("msg.regenerate")}
               </button>
             )}
+            {onVirgo && (
+              <button
+                className={`action-btn virgo-btn${virgo ? " on" : ""}`}
+                onClick={onVirgo}
+                disabled={virgo?.state === "loading"}
+                title={t("virgo.hint")}
+              >
+                {virgo?.state === "loading" ? `… ${t("virgo.checking")}` : `⌕ ${t("virgo.name")}`}
+              </button>
+            )}
           </div>
+        )}
+        {virgo?.state === "done" && virgo.result && (
+          <motion.div
+            className={`virgo-panel ${virgo.result.verdict}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: EASE_OUT }}
+          >
+            <div className="virgo-head">
+              <span className="virgo-badge">
+                {virgo.result.verdict === "clean" ? "✓" : "!"}
+              </span>
+              <b>{virgo.result.verdict === "clean" ? t("virgo.clean") : t("virgo.issues")}</b>
+              <button type="button" className="virgo-close" onClick={onVirgoDismiss} aria-label={t("art.close")}>
+                ×
+              </button>
+            </div>
+            <div
+              className="virgo-findings"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(virgo.result.findings, mdLabels) }}
+            />
+            {virgo.result.corrected && onVirgoApply && (
+              <button type="button" className="virgo-apply" onClick={onVirgoApply}>
+                {t("virgo.apply")}
+              </button>
+            )}
+          </motion.div>
         )}
         {!isUser && followups && followups.length > 0 && onFollowup && (
           <motion.div

@@ -7,8 +7,11 @@ import {
   generateImage,
   extractMemory,
   fetchFollowups,
+  auditAnswer,
+  askLibra,
   type AgentStep,
   type ImageAspect,
+  type VirgoResult,
 } from "../lib/api";
 import { stripForSpeech } from "../lib/markdown";
 import { blobToDataUrl } from "../lib/image";
@@ -22,6 +25,14 @@ import {
   type MemoryFact,
   type MemoryStore,
 } from "../lib/memory";
+import {
+  ACTIVE_PROJECT_KEY,
+  MAX_PROJECTS,
+  newProject,
+  toContext,
+  type Project,
+  type ProjectStore,
+} from "../lib/projects";
 import type { ChatStorage } from "../lib/storage";
 import type { Chat, ChatMessage, ModelInfo } from "../types";
 
@@ -31,6 +42,7 @@ interface Options {
   userName?: string | null;
   storageKeyForModel?: string; // localStorage key to remember last-picked model (undefined = no persistence)
   memoryStore?: MemoryStore;
+  projectStore?: ProjectStore;
 }
 
 type SpeakState = { key: string; state: "loading" | "playing" } | null;
@@ -52,6 +64,7 @@ export function useChatController({
   userName,
   storageKeyForModel,
   memoryStore,
+  projectStore,
 }: Options) {
   const { t, lang } = useI18n();
   const [chats, setChats] = useState<Chat[]>([]);
@@ -69,6 +82,7 @@ export function useChatController({
     () => (localStorage.getItem(IMAGE_ASPECT_KEY) as ImageAspect | null) || "square"
   );
   const [webSearchMode, setWebSearchMode] = useState(false);
+  const [libraMode, setLibraMode] = useState(false);
   const [translateMode, setTranslateMode] = useState(false);
   const [translateTo, setTranslateTo] = useState<string>(
     () => localStorage.getItem(TRANSLATE_TARGET_KEY) || "en"
@@ -83,6 +97,12 @@ export function useChatController({
   const [memorySaved, setMemorySaved] = useState<string | null>(null);
   const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
   const [followups, setFollowups] = useState<string[]>([]);
+
+  // ---------- Capricorn layihələri ----------
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(
+    () => localStorage.getItem(ACTIVE_PROJECT_KEY) || null
+  );
 
   const abortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -116,6 +136,41 @@ export function useChatController({
       if (savedToastTimer.current) clearTimeout(savedToastTimer.current);
     },
     []
+  );
+
+  // Layihə konteksti streamAssistant-ın deps-inə düşməsin deyə ref-də saxlanılır
+  const activeProjectRef = useRef<Project | null>(null);
+
+  useEffect(() => {
+    if (!projectStore) return;
+    let alive = true;
+    projectStore.load().then((list) => {
+      if (alive) setProjects(list);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [projectStore]);
+
+  const activeProject = projects.find((p) => p.id === activeProjectId) || null;
+  useEffect(() => {
+    activeProjectRef.current = activeProject;
+  }, [activeProject]);
+
+  // Silinmiş və ya başqa hesabdan qalmış layihə id-si asılı qalmasın
+  useEffect(() => {
+    if (activeProjectId && projects.length && !projects.some((p) => p.id === activeProjectId)) {
+      setActiveProjectId(null);
+      localStorage.removeItem(ACTIVE_PROJECT_KEY);
+    }
+  }, [projects, activeProjectId]);
+
+  const persistProjects = useCallback(
+    (list: Project[]) => {
+      setProjects(list);
+      void projectStore?.save(list);
+    },
+    [projectStore]
   );
 
   const persistMemories = useCallback(
@@ -163,9 +218,18 @@ export function useChatController({
     return list;
   }, [storage]);
 
+  // Yeni söhbət AKTİV layihəyə bağlanır — layihə seçiliykən başlanan hər
+  // söhbət avtomatik onun altına düşür.
   const freshChat = useCallback(
-    (): Chat => ({ id: null, title: "", messages: [], modelId: currentModelId, updatedAt: Date.now() }),
-    [currentModelId]
+    (): Chat => ({
+      id: null,
+      title: "",
+      messages: [],
+      modelId: currentModelId,
+      projectId: activeProjectId,
+      updatedAt: Date.now(),
+    }),
+    [currentModelId, activeProjectId]
   );
 
   const stopEverything = useCallback(() => {
@@ -285,6 +349,9 @@ export function useChatController({
             memoryOnRef.current && !translateMode
               ? memoriesRef.current.map((m) => m.text)
               : undefined,
+          // Tərcümə rejimində layihə konteksti göndərilmir — orada model
+          // söhbət etmir, yalnız mətn çevirir.
+          project: translateMode ? undefined : toContext(activeProjectRef.current),
           signal: ctrl.signal,
           onStep: (step) => {
             setAgentSteps((prev) => {
@@ -461,10 +528,63 @@ export function useChatController({
     localStorage.setItem(IMAGE_ASPECT_KEY, a);
   }, []);
 
+  // ---------- Libra: iki müstəqil cavabın tərəzisi ----------
+  // Nəticə markdown mətn kimi adi cavab mesajına yazılır — belə olanda
+  // saxlama, ixrac, səsləndirmə və Virgo auditi əlavə iş olmadan işləyir.
+  const libraMessage = useCallback(
+    async (question: string) => {
+      const base = currentChat ?? freshChat();
+      const withUser: Chat = {
+        ...base,
+        messages: [...base.messages, { role: "user", content: question }],
+        modelId: base.modelId || currentModelId,
+      };
+      setCurrentChat(withUser);
+
+      setBusy(true);
+      setStatusText(t("status.weighing"));
+      setFollowups([]);
+      setAgentSteps([]);
+
+      try {
+        const r = await askLibra(question, lang);
+        const noConflict = !r.conflict || /ziddiyyət yoxdur|no conflict|нет противоречий|çelişki yok/i.test(r.conflict);
+        const parts = [
+          r.agreement ? `**⚖ ${t("libra.agreement")}**\n${r.agreement}` : "",
+          !noConflict ? `**⚠ ${t("libra.conflict")}**\n${r.conflict}` : "",
+          r.verdict ? `**${t("libra.verdict")}**\n${r.verdict}` : "",
+          r.degraded ? `\n_${t("libra.degraded")}_` : "",
+        ].filter(Boolean);
+
+        const finalChat: Chat = {
+          ...withUser,
+          messages: [...withUser.messages, { role: "assistant", content: parts.join("\n\n") }],
+        };
+        setCurrentChat(finalChat);
+        setStatusText(t("status.ready"));
+        void maybeTitleAndPersist(finalChat);
+      } catch {
+        setCurrentChat({
+          ...withUser,
+          messages: [...withUser.messages, { role: "assistant", content: t("libra.failed") }],
+        });
+        setStatusText(t("status.error"));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [currentChat, freshChat, currentModelId, lang, t, maybeTitleAndPersist]
+  );
+
   const sendMessage = useCallback(
     (text: string, image?: string | null) => {
       const content = text.trim();
       if ((!content && !image) || busy) return;
+
+      if (libraMode && content) {
+        void libraMessage(content);
+        return;
+      }
 
       if (imageGenMode && content) {
         void generateImageMessage(content);
@@ -477,7 +597,7 @@ export function useChatController({
       setCurrentChat(withUser);
       void streamAssistant(withUser);
     },
-    [busy, currentChat, freshChat, currentModelId, streamAssistant, imageGenMode, generateImageMessage]
+    [busy, currentChat, freshChat, currentModelId, streamAssistant, imageGenMode, generateImageMessage, libraMode, libraMessage]
   );
 
   const stop = useCallback(() => {
@@ -573,18 +693,30 @@ export function useChatController({
   const toggleAgentMode = useCallback(() => setAgentMode((v) => !v), []);
   const toggleWebSearch = useCallback(() => setWebSearchMode((v) => !v), []);
 
+  // Libra sualı iki modelə paylayır — şəkil yaratma və tərcümə ilə birlikdə
+  // mənası yoxdur, ona görə onlar bir-birini söndürür.
+  const toggleLibra = useCallback(() => {
+    setLibraMode((v) => {
+      if (!v) {
+        setImageGenMode(false);
+        setTranslateMode(false);
+      }
+      return !v;
+    });
+  }, []);
+
   // Şəkil yaratma və tərcümə bir-birini istisna edir: ikisi də yazılanı
   // "sual" kimi yox, "material" kimi qəbul edir, birlikdə mənasızdır.
   const toggleImageGen = useCallback(() => {
     setImageGenMode((v) => {
-      if (!v) setTranslateMode(false);
+      if (!v) { setTranslateMode(false); setLibraMode(false); }
       return !v;
     });
   }, []);
 
   const toggleTranslate = useCallback(() => {
     setTranslateMode((v) => {
-      if (!v) setImageGenMode(false);
+      if (!v) { setImageGenMode(false); setLibraMode(false); }
       return !v;
     });
   }, []);
@@ -626,6 +758,113 @@ export function useChatController({
 
   const dismissMemoryToast = useCallback(() => setMemorySaved(null), []);
 
+  // ---------- Virgo: cavab auditi ----------
+  const [virgo, setVirgo] = useState<{ index: number; state: "loading" | "done"; result?: VirgoResult } | null>(
+    null
+  );
+
+  const runVirgo = useCallback(
+    async (index: number) => {
+      const msgs = currentChat?.messages || [];
+      const answer = msgs[index];
+      if (!answer || answer.role !== "assistant" || !answer.content) return;
+      // Auditə aid sual — cavabdan əvvəlki son istifadəçi mesajı
+      const question = [...msgs.slice(0, index)].reverse().find((m) => m.role === "user")?.content || "";
+
+      setVirgo({ index, state: "loading" });
+      try {
+        const result = await auditAnswer(question, answer.content, lang);
+        setVirgo({ index, state: "done", result });
+      } catch {
+        setVirgo({
+          index,
+          state: "done",
+          result: { verdict: "issues", findings: t("virgo.failed"), corrected: "" },
+        });
+      }
+    },
+    [currentChat, lang, t]
+  );
+
+  const dismissVirgo = useCallback(() => setVirgo(null), []);
+
+  /** Virgo-nun düzəlişini cavabın yerinə qoyur */
+  const applyVirgoFix = useCallback(() => {
+    setVirgo((v) => {
+      if (!v?.result?.corrected || !currentChat) return v;
+      const next: Chat = {
+        ...currentChat,
+        messages: currentChat.messages.map((m, i) =>
+          i === v.index ? { ...m, content: v.result!.corrected } : m
+        ),
+      };
+      setCurrentChat(next);
+      void persist(next);
+      return null;
+    });
+  }, [currentChat, persist]);
+
+  // ---------- Capricorn idarəetməsi ----------
+  const selectProject = useCallback(
+    (id: string | null) => {
+      setActiveProjectId(id);
+      if (id) localStorage.setItem(ACTIVE_PROJECT_KEY, id);
+      else localStorage.removeItem(ACTIVE_PROJECT_KEY);
+      // Layihə dəyişəndə açıq söhbət başqa layihəyə aiddir — təmiz başlayırıq
+      stopEverything();
+      setCurrentChat({
+        id: null,
+        title: "",
+        messages: [],
+        modelId: currentModelId,
+        projectId: id,
+        updatedAt: Date.now(),
+      });
+    },
+    [stopEverything, currentModelId]
+  );
+
+  const createProject = useCallback(
+    (name: string) => {
+      const clean = name.trim();
+      if (!clean || projects.length >= MAX_PROJECTS) return null;
+      const p = newProject(clean);
+      persistProjects([...projects, p]);
+      return p;
+    },
+    [projects, persistProjects]
+  );
+
+  const updateProject = useCallback(
+    (id: string, patch: Partial<Project>) => {
+      persistProjects(
+        projects.map((p) => (p.id === id ? { ...p, ...patch, id: p.id, updatedAt: Date.now() } : p))
+      );
+    },
+    [projects, persistProjects]
+  );
+
+  // Layihə silinəndə onun söhbətləri SİLİNMİR — sadəcə layihədən ayrılır,
+  // beləliklə istifadəçi təsadüfən iş tarixçəsini itirmir.
+  const deleteProject = useCallback(
+    async (id: string) => {
+      persistProjects(projects.filter((p) => p.id !== id));
+      if (activeProjectId === id) {
+        setActiveProjectId(null);
+        localStorage.removeItem(ACTIVE_PROJECT_KEY);
+      }
+      const affected = chats.filter((c) => c.projectId === id && c.id);
+      if (affected.length) {
+        const detached = await Promise.all(
+          affected.map((c) => storage.save({ ...c, projectId: null }).catch(() => c))
+        );
+        setChats((prev) => prev.map((c) => detached.find((d) => d.id === c.id) || c));
+      }
+      setCurrentChat((cur) => (cur?.projectId === id ? { ...cur, projectId: null } : cur));
+    },
+    [projects, persistProjects, activeProjectId, chats, storage]
+  );
+
   return {
     chats,
     currentChat,
@@ -644,6 +883,8 @@ export function useChatController({
     selectImageAspect,
     webSearchMode,
     toggleWebSearch,
+    libraMode,
+    toggleLibra,
     translateMode,
     toggleTranslate,
     translateTo,
@@ -672,5 +913,16 @@ export function useChatController({
     clearMemories,
     toggleMemory,
     dismissMemoryToast,
+    projects,
+    activeProject,
+    activeProjectId,
+    selectProject,
+    createProject,
+    updateProject,
+    deleteProject,
+    virgo,
+    runVirgo,
+    dismissVirgo,
+    applyVirgoFix,
   };
 }

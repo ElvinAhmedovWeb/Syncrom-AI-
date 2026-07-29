@@ -13,6 +13,7 @@ import { EASE_OUT } from "../lib/motion";
 import { downloadChat } from "../lib/export";
 import { useT } from "../lib/i18n";
 import type { MemoryFact, MemoryStore } from "../lib/memory";
+import type { ProjectStore } from "../lib/projects";
 import type { ChatStorage } from "../lib/storage";
 
 const fadeUp = {
@@ -63,6 +64,7 @@ interface Props {
   fixedModelId?: string;
   storage: ChatStorage;
   memoryStore?: MemoryStore;
+  projectStore?: ProjectStore;
   userName?: string | null;
   storageKeyForModel?: string;
   sidebarFooter?: ReactNode | ((api: ShellFooterApi) => ReactNode);
@@ -83,6 +85,7 @@ export default function ChatShell({
   fixedModelId,
   storage,
   memoryStore,
+  projectStore,
   userName,
   storageKeyForModel,
   sidebarFooter,
@@ -92,7 +95,7 @@ export default function ChatShell({
   imageGenEnabled,
 }: Props) {
   const t = useT();
-  const ctrl = useChatController({ storage, fixedModelId, userName, storageKeyForModel, memoryStore });
+  const ctrl = useChatController({ storage, fixedModelId, userName, storageKeyForModel, memoryStore, projectStore });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState<string | null>(null);
@@ -187,6 +190,14 @@ export default function ChatShell({
         onOpenChat={(id) => {
           ctrl.openChat(id);
           setSidebarOpen(false);
+        }}
+        capricorn={{
+          projects: ctrl.projects,
+          activeProject: ctrl.activeProject,
+          select: ctrl.selectProject,
+          create: ctrl.createProject,
+          update: ctrl.updateProject,
+          remove: ctrl.deleteProject,
         }}
         onDeleteChat={ctrl.deleteChat}
         onRenameChat={ctrl.renameChat}
@@ -297,6 +308,10 @@ export default function ChatShell({
                     steps={isLastAssistant ? ctrl.agentSteps : undefined}
                     followups={isLastAssistant && !ctrl.busy ? ctrl.followups : undefined}
                     onFollowup={(q) => doSend(q)}
+                    virgo={ctrl.virgo?.index === i ? ctrl.virgo : undefined}
+                    onVirgo={m.role === "assistant" && !ctrl.busy ? () => void ctrl.runVirgo(i) : undefined}
+                    onVirgoDismiss={ctrl.dismissVirgo}
+                    onVirgoApply={ctrl.applyVirgoFix}
                   />
                 );
               })}
@@ -353,6 +368,8 @@ export default function ChatShell({
           agentModeActive={ctrl.agentMode}
           onToggleAgentMode={ctrl.toggleAgentMode}
           webSearchActive={ctrl.webSearchMode}
+          libraActive={ctrl.libraMode}
+          onToggleLibra={ctrl.toggleLibra}
           onToggleWebSearch={ctrl.toggleWebSearch}
           translateActive={ctrl.translateMode}
           onToggleTranslate={ctrl.toggleTranslate}
