@@ -93,6 +93,20 @@ export async function registerWithEmail(
   }
 }
 
+/**
+ * Cari istifadəçinin Firebase ID tokeni — server açar buraxarkən bununla
+ * istifadəçinin kim olduğunu yoxlayır. Qonaq rejimində null qayıdır.
+ */
+export async function getIdToken(): Promise<string | null> {
+  if (!ensureInit() || !auth?.currentUser) return null;
+  try {
+    return await auth.currentUser.getIdToken();
+  } catch (e) {
+    console.warn("ID token alınmadı:", e);
+    return null;
+  }
+}
+
 export async function logout(): Promise<void> {
   if (!ensureInit() || !auth) return;
   await signOut(auth);

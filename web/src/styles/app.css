@@ -3099,3 +3099,87 @@
 .virgo-apply:hover {
   background: var(--accent-soft);
 }
+
+/* ---------- API açarları pəncərəsi ---------- */
+.key-dialog {
+  max-width: 560px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+/* Yeni açar bloku qəsdən diqqətçəkəndir — bir daha göstərilməyəcək */
+.key-fresh {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent-soft);
+}
+
+.key-fresh-warn {
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.key-value {
+  display: block;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: var(--bg-panel-solid);
+  color: var(--text);
+  font-family: Consolas, "Cascadia Code", monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  word-break: break-all;
+  user-select: all;
+}
+
+.key-copy {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.key-meta {
+  display: block;
+  margin-top: 2px;
+  font-family: Consolas, "Cascadia Code", monospace;
+  font-size: 0.66rem;
+  color: var(--text-dim);
+}
+
+.key-docs {
+  margin: 10px 0 4px;
+  font-size: 0.75rem;
+}
+
+.key-docs summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  user-select: none;
+}
+
+.key-docs summary:hover {
+  color: var(--text);
+}
+
+.key-docs pre {
+  margin: 8px 0 0;
+  padding: 10px;
+  overflow-x: auto;
+  border-radius: 9px;
+  background: #0d1117;
+  color: #e6edf3;
+  font-size: 0.68rem;
+  line-height: 1.55;
+}

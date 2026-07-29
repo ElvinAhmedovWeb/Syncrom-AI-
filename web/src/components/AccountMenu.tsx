@@ -3,6 +3,14 @@ import { motion } from "framer-motion";
 import { EASE_OUT } from "../lib/motion";
 import { LANGS, useI18n } from "../lib/i18n";
 import { MAX_MEMORIES } from "../lib/memory";
+import {
+  forgetKeyRecord,
+  issueKey,
+  loadKeyRecords,
+  NotSignedInError,
+  type ApiKeyRecord,
+  type IssuedKey,
+} from "../lib/apikeys";
 import type { ShellFooterApi } from "./ChatShell";
 
 interface Props {
@@ -27,6 +35,7 @@ export default function AccountMenu({ displayName, email, photoURL, isGuest, onS
   const [langsOpen, setLangsOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -189,6 +198,23 @@ export default function AccountMenu({ displayName, email, photoURL, isGuest, onS
               </span>
             </button>
 
+            {/* ---------- API açarları (yalnız hesabla) ---------- */}
+            {!isGuest && (
+              <button
+                type="button"
+                onClick={() => {
+                  setKeysOpen(true);
+                  closeMenu();
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="7.5" cy="15.5" r="4.5" />
+                  <path d="M10.7 12.3 21 2M18 5l2 2M15 8l2 2" />
+                </svg>
+                <span className="uc-item-label">{t("key.title")}</span>
+              </button>
+            )}
+
             {/* ---------- Söhbəti ixrac et ---------- */}
             <button
               type="button"
@@ -253,7 +279,150 @@ export default function AccountMenu({ displayName, email, photoURL, isGuest, onS
         )}
       </div>
       {memoryOpen && <MemoryDialog memory={api.memory} onClose={() => setMemoryOpen(false)} />}
+      {keysOpen && <ApiKeysDialog onClose={() => setKeysOpen(false)} />}
     </>
+  );
+}
+
+function ApiKeysDialog({ onClose }: { onClose: () => void }) {
+  const { t, locale } = useI18n();
+  const [records, setRecords] = useState<ApiKeyRecord[]>(() => loadKeyRecords());
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [fresh, setFresh] = useState<IssuedKey | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  async function create() {
+    const clean = name.trim();
+    if (!clean || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const issued = await issueKey(clean);
+      setFresh(issued);
+      setRecords(loadKeyRecords());
+      setName("");
+    } catch (e) {
+      setError(e instanceof NotSignedInError ? t("key.needAccount") : t("key.failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyKey() {
+    if (!fresh) return;
+    try {
+      await navigator.clipboard.writeText(fresh.key);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError(t("msg.copyFailed"));
+    }
+  }
+
+  const fmt = (ts: number) => new Date(ts).toLocaleDateString(locale);
+
+  return (
+    <motion.div
+      className="about-overlay"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
+        className="about-dialog key-dialog"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 14, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.22, ease: EASE_OUT }}
+        role="dialog"
+        aria-modal="true"
+      >
+        <h3>{t("key.title")}</h3>
+        <p className="mem-sub">{t("key.sub")}</p>
+
+        {/* Yeni açar YALNIZ bir dəfə görünür — server onu saxlamır */}
+        {fresh && (
+          <div className="key-fresh">
+            <p className="key-fresh-warn">{t("key.onceWarning")}</p>
+            <code className="key-value">{fresh.key}</code>
+            <button type="button" className="key-copy" onClick={copyKey}>
+              {copied ? t("msg.copied") : t("msg.copy")}
+            </button>
+          </div>
+        )}
+
+        <div className="mem-add">
+          <input
+            type="text"
+            value={name}
+            maxLength={60}
+            placeholder={t("key.namePlaceholder")}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void create();
+            }}
+          />
+          <button type="button" onClick={() => void create()} disabled={busy || !name.trim()}>
+            {busy ? t("key.creating") : t("key.create")}
+          </button>
+        </div>
+
+        {error && <p className="auth-error">{error}</p>}
+
+        {records.length === 0 ? (
+          <p className="mem-empty">{t("key.empty")}</p>
+        ) : (
+          <ul className="mem-list">
+            {records.map((k) => (
+              <li key={k.keyId} className="mem-item">
+                <span className="mem-item-text">
+                  <b>{k.name}</b>
+                  <small className="key-meta">
+                    {k.keyId} · {fmt(k.createdAt)} → {fmt(k.expiresAt)}
+                  </small>
+                </span>
+                <button
+                  type="button"
+                  className="mem-item-del"
+                  title={t("key.forget")}
+                  aria-label={t("key.forget")}
+                  onClick={() => setRecords(forgetKeyRecord(k.keyId))}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <details className="key-docs">
+          <summary>{t("key.howTo")}</summary>
+          <pre>
+            <code>{`curl ${location.origin}/api/v1/chat \\
+  -H "Authorization: Bearer ${fresh ? fresh.key.slice(0, 24) + "..." : "sk-syncrom...."}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model":"alina-1.7","messages":[{"role":"user","content":"Salam"}]}'`}</code>
+          </pre>
+        </details>
+
+        <p className="cap-note">{t("key.revokeNote")}</p>
+
+        <button type="button" className="about-close" onClick={onClose}>
+          {t("about.close")}
+        </button>
+      </motion.div>
+    </motion.div>
   );
 }
 

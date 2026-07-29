@@ -4,6 +4,7 @@ const os = require("os");
 const { execFile } = require("child_process");
 // .env-i həmişə bu faylın yanından oxu — Electron/başqa CWD-dən işə düşəndə də etibarlı olsun
 require("dotenv").config({ path: path.join(__dirname, ".env") });
+const crypto = require("crypto");
 const express = require("express");
 
 const app = express();
@@ -39,6 +40,52 @@ const groqHeaders = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${GROQ_API_KEY}`,
 });
+
+// ============================================================
+// Provayderlər
+//
+// NVIDIA NIM (build.nvidia.com) OpenAI-uyğun endpoint verir, ona görə
+// bədən (body) formatı eynidir — yalnız ünvan və açar dəyişir.
+//
+// NİYƏ VACİBDİR: Groq-un bu tarifində dəqiqəlik token limiti 8000-dir və
+// uzun kod cavablarının yarımçıq qalmasının əsas səbəbi məhz odur.
+// NVIDIA-da belə dar TPM həddi yoxdur, ona görə kod modelini oraya
+// yönləndirmək kəsilmə problemini kökündən azaldır.
+// ============================================================
+const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
+const NVIDIA_URL =
+  process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1/chat/completions";
+// Model id-si build.nvidia.com-dakı kataloqdan TƏSDİQLƏNMƏLİDİR — kataloq
+// dəyişir, ona görə env ilə idarə olunur.
+const NVIDIA_MODEL_CODE = process.env.NVIDIA_MODEL_CODE || "zhipuai/glm-5.2";
+
+const PROVIDERS = {
+  groq: {
+    url: () => GROQ_URL,
+    key: () => GROQ_API_KEY,
+    // Groq: 8000 TPM — cavab limiti prompt ölçüsünə görə daraldılır
+    tpmBudget: () => TPM_BUDGET,
+  },
+  nvidia: {
+    url: () => NVIDIA_URL,
+    key: () => NVIDIA_API_KEY,
+    // Dar TPM həddi yoxdur — cavab limitini süni daraltmırıq
+    tpmBudget: () => 0,
+  },
+};
+
+/** Model hansı provayderdə işləyir? Açar yoxdursa Groq-a qayıdır. */
+function providerOf(model) {
+  const name = model?.provider;
+  if (name === "nvidia" && !NVIDIA_API_KEY) return "groq";
+  return PROVIDERS[name] ? name : "groq";
+}
+
+/** Provayder üzrə real model adı (Keyla NVIDIA-da başqa id ilə çağırılır) */
+function resolveModelName(model, providerName) {
+  if (providerName === "nvidia" && model?.nvidiaModel) return model.nvidiaModel;
+  return model?.groqModel || GROQ_MODEL;
+}
 
 app.use(express.json({ limit: "8mb" }));
 
@@ -182,6 +229,10 @@ Rəqəmləri adi mətnlə yaz (1/6, 12,5%, 2,4 saat) — LaTeX işlətmə.`,
     tag: "Kod Mütəxəssisi",
     color: "#6366f1",
     desc: "Proqramlaşdırma, debug və arxitektura üçün güclü model.",
+    // NVIDIA açarı varsa GLM oraya gedir (dar TPM həddi yoxdur, uzun kod
+    // cavabları kəsilmir); açar yoxdursa avtomatik Groq-da qalır.
+    provider: "nvidia",
+    nvidiaModel: NVIDIA_MODEL_CODE,
     groqModel: GROQ_MODEL_CODE,
     temperature: 0.25,
     primary: true,
@@ -210,6 +261,10 @@ Digər qaydaların:
     tag: "AI Kod Editoru",
     color: "#22d3ee",
     desc: "Cursor-vari — açıq faylın kontekstində redaktə təklif edir, kod icra edir, veb axtarır.",
+    // Schala da kod modelidir — Keyla ilə eyni provayderi izləyir, çünki
+    // tam fayl yazır və kəsilmə orada daha ağrılıdır.
+    provider: "nvidia",
+    nvidiaModel: NVIDIA_MODEL_CODE,
     groqModel: GROQ_MODEL_CODE,
     temperature: 0.2,
     reasoning: true,
@@ -956,22 +1011,27 @@ async function runAgentLoop(groqMessages, model, onStep = () => {}) {
   for (let i = 0; i < 4; i++) {
     // İlk addımdan sonra şəkli daşımırıq — bax: stripImages
     if (i === 1) messages = stripImages(messages);
-    const resp = await groqRequest({
-      model: model.groqModel,
-      messages,
-      temperature: model.temperature,
-      // Reasoning modelləri düşüncəsini cavabın İÇİNƏ yazır (qwen bunu xam
-      // <think> bloku kimi verir). buildGroqBody-də bu söndürülür, amma alət
-      // dövrəsi öz sorğusunu qurur — burada da qoymasan düşüncə istifadəçiyə
-      // görünür. Alətlərlə uyğunluğu yoxlanılıb.
-      ...(model.reasoning ? { reasoning_format: "hidden" } : {}),
-      // Alət dövrəsi bir sual üçün 2-4 çağırış edir və hamısı EYNİ dəqiqəlik
-      // token büdcəsindən (8000 TPM) yeyir. Tək sorğu limitə sığsa da cəmi
-      // aşırdı, ona görə burada pay adi cavabdan dar tutulur.
-      max_tokens: budgetedMaxTokens(messages, 2048),
-      tools: AGENT_TOOLS,
-      tool_choice: "auto",
-    });
+    const providerName = providerOf(model);
+    const resp = await groqRequest(
+      {
+        model: resolveModelName(model, providerName),
+        messages,
+        temperature: model.temperature,
+        // Reasoning modelləri düşüncəsini cavabın İÇİNƏ yazır (qwen bunu xam
+        // <think> bloku kimi verir). buildGroqBody-də bu söndürülür, amma alət
+        // dövrəsi öz sorğusunu qurur — burada da qoymasan düşüncə istifadəçiyə
+        // görünür. Alətlərlə uyğunluğu yoxlanılıb.
+        // reasoning_format Groq-a xas parametrdir, NVIDIA-ya göndərilmir.
+        ...(model.reasoning && providerName === "groq" ? { reasoning_format: "hidden" } : {}),
+        // Alət dövrəsi bir sual üçün 2-4 çağırış edir və Groq-da hamısı EYNİ
+        // dəqiqəlik token büdcəsindən yeyir, ona görə pay dar tutulur.
+        // NVIDIA-da belə hədd yoxdur — orada əliaçıq davranırıq.
+        max_tokens: budgetedMaxTokens(messages, providerName === "nvidia" ? 8192 : 2048, providerName),
+        tools: AGENT_TOOLS,
+        tool_choice: "auto",
+      },
+      providerName
+    );
     if (resp.failed) {
       console.error("Agent loop Groq xətası:", resp.status, resp.errText);
       return resp.rateLimited
@@ -1001,17 +1061,44 @@ async function runAgentLoop(groqMessages, model, onStep = () => {}) {
 }
 
 // ============================================================
-// Groq sorğusu — model tapılmasa avtomatik defolta keçir
+// Model sorğusu — provayderə görə ünvan/açar seçir, model tapılmasa
+// avtomatik Groq defoltuna keçir.
 // ============================================================
-async function groqRequest(bodyObj) {
-  const doFetch = (body) =>
-    fetch(GROQ_URL, {
+async function groqRequest(rawBody, explicitProvider) {
+  // buildGroqBody provayderi bədənə "__provider" kimi yazır — API-yə
+  // göndərilməzdən əvvəl ayrılır, əks halda naməlum sahə kimi rədd olunur.
+  const { __provider, ...bodyObj } = rawBody;
+  const providerName = explicitProvider || __provider || "groq";
+  const provider = PROVIDERS[providerName] || PROVIDERS.groq;
+  const doFetch = (body, target = provider) =>
+    fetch(target.url(), {
       method: "POST",
-      headers: groqHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${target.key()}`,
+      },
       body: JSON.stringify(body),
     });
 
   let resp = await doFetch(bodyObj);
+
+  // NVIDIA-da model/ünvan problemi olsa istifadəçi tamamilə cavabsız
+  // qalmasın — Groq-un kod modelinə qayıdırıq. Bu, açar səhv yazılanda
+  // və ya model id-si kataloqda dəyişəndə platformanı işlək saxlayır.
+  if (providerName === "nvidia" && !resp.ok && resp.status !== 429) {
+    const errText = await resp.text();
+    console.warn(
+      `NVIDIA sorğusu alınmadı (${resp.status}), Groq-a qayıdılır:`,
+      errText.slice(0, 200)
+    );
+    const { reasoning_format, ...rest } = bodyObj;
+    resp = await doFetch({ ...rest, model: GROQ_MODEL_CODE }, PROVIDERS.groq);
+    if (!resp.ok) {
+      const err2 = await resp.text();
+      return { failed: true, status: resp.status, errText: err2 };
+    }
+    return resp;
+  }
 
   // Sürət limiti (429): Groq cavabında "try again in 5.7675s" kimi gözləmə
   // müddəti göstərir və biz məhz o qədər gözləyirik.
@@ -1175,8 +1262,12 @@ function estimateTokens(messages) {
   return Math.ceil(chars / 3.2) + images * IMAGE_TOKENS;
 }
 
-function budgetedMaxTokens(messages, desired) {
-  const room = TPM_BUDGET - estimateTokens(messages);
+// providerName verilibsə onun büdcəsi işlədilir. Büdcə 0-dırsa (NVIDIA)
+// süni daraltma yoxdur — istənilən limit olduğu kimi qalır.
+function budgetedMaxTokens(messages, desired, providerName = "groq") {
+  const budget = (PROVIDERS[providerName] || PROVIDERS.groq).tpmBudget();
+  if (!budget) return desired;
+  const room = budget - estimateTokens(messages);
   return Math.max(MIN_ANSWER_TOKENS, Math.min(desired, room));
 }
 
@@ -1184,20 +1275,29 @@ async function buildGroqBody(req, stream) {
   const { modelId, deepThink, webSearchMode, translateMode } = req.body;
   const model = getModel(modelId);
   const groqMessages = await buildGroqMessages(req, model);
+  const providerName = providerOf(model);
 
   const body = {
-    model: model.groqModel,
+    model: resolveModelName(model, providerName),
     messages: groqMessages,
     // Tərcümədə yaradıcılıq zərərlidir — Lira kimi yüksək temperaturlu
     // model seçilsə də sabit, sözə sadiq çeviriş üçün aşağı salırıq.
     temperature: translateMode ? 0.2 : model.temperature,
     // Reasoning modellər cavabdan ƏVVƏL "düşüncə" tokeni xərcləyir: limit dar
     // olanda cavab tam BOŞ qayıdır (finish_reason: "length"), ona görə onlara
-    // daha geniş pay verilir. Yekun rəqəm TPM büdcəsinə görə kəsilir.
-    max_tokens: budgetedMaxTokens(groqMessages, model.reasoning || deepThink || webSearchMode ? 4096 : 3072),
+    // daha geniş pay verilir. Groq-da yekun rəqəm TPM büdcəsinə görə kəsilir;
+    // NVIDIA-da belə hədd olmadığı üçün kod modeli daha geniş pay alır.
+    max_tokens: budgetedMaxTokens(
+      groqMessages,
+      providerName === "nvidia" ? 16384 : model.reasoning || deepThink || webSearchMode ? 4096 : 3072,
+      providerName
+    ),
     stream,
   };
-  if (model.reasoning) body.reasoning_format = "hidden";
+  // reasoning_format Groq-a xas parametrdir — NVIDIA onu tanımır
+  if (model.reasoning && providerName === "groq") body.reasoning_format = "hidden";
+  // Çağıran tərəf provayderi bilməlidir (axın və davam sorğuları üçün)
+  body.__provider = providerName;
   return body;
 }
 
@@ -1306,8 +1406,19 @@ app.post("/api/chat/stream", async (req, res) => {
       return next;
     }
 
+    const fenceCount = (s) => (s.match(/```/g) || []).length;
+
+    // Davam edərkən model çox vaxt kod blokunu YENİDƏN açır (```html).
+    // Kəsilmə kodun ORTASINDA baş veribsə, bu, markdown-u pozur: blok
+    // sayı tək qalır və interfeysdə qalan mətn kod kimi udulur.
+    // Prompt qaydası bunu tam qarşılamadı, ona görə açılışı kəsirik.
+    function dropReopenedFence(insideCode, next) {
+      if (!insideCode) return next;
+      return next.replace(/^\s*```[a-zA-Z0-9]*\n?/, "");
+    }
+
     // Bir axın keçidi: mətni klientə ötürür, sonda finish_reason qaytarır
-    async function pipeOnce(reqBody, prevTail) {
+    async function pipeOnce(reqBody, prevTail, insideCode = false) {
       const upstream = await groqRequest(reqBody);
       if (upstream.failed) return { failed: true, upstream };
 
@@ -1346,10 +1457,11 @@ app.post("/api/chat/stream", async (req, res) => {
             const delta = choice?.delta?.content;
             if (delta) {
               if (head !== null) {
-                // Davam keçidi: əvvəlcə başı yığ, təkrarı kəs, sonra axıt
+                // Davam keçidi: əvvəlcə başı yığ, təkrarı və yenidən açılmış
+                // kod bloku işarəsini kəs, sonra axıt
                 head += delta;
                 if (head.length >= OVERLAP_SCAN) {
-                  push(stripOverlap(prevTail, head));
+                  push(dropReopenedFence(insideCode, stripOverlap(prevTail, head)));
                   head = null;
                 }
               } else {
@@ -1362,7 +1474,7 @@ app.post("/api/chat/stream", async (req, res) => {
       }
 
       // Qalan baş buferi (qısa cavab halı)
-      if (head) push(stripOverlap(prevTail, head));
+      if (head) push(dropReopenedFence(insideCode, stripOverlap(prevTail, head)));
 
       if (finish === "length") {
         // Yarımçıq son sətri at — davam təmiz sərhəddən başlasın
@@ -1413,19 +1525,33 @@ app.post("/api/chat/stream", async (req, res) => {
             content:
               "Cavabın token limitinə görə yarımçıq kəsildi. Yuxarıdakı mətnin DƏQİQ bitdiyi yerdən davam et. " +
               "Salamlaşma, üzr, izahat və ya artıq yazdığını TƏKRAR YAZMA — sadəcə ardını yaz. " +
-              "Kod blokunun içində kəsilmisənsə kod blokunu yenidən açma və faylı əvvəldən yazma, yalnız kodun ardını ver.",
+              "Kod blokunun içində kəsilmisənsə kod blokunu yenidən açma və faylı əvvəldən yazma, yalnız kodun ardını ver. " +
+              "HTML sənədi yazırsansa, bitirməzdən əvvəl bütün açıq teqləri bağla — cavab mütləq </body></html> ilə tamamlanmalıdır.",
           },
         ],
       };
-      contBody.max_tokens = budgetedMaxTokens(contBody.messages, model.reasoning ? 4096 : 3072);
+      const contProvider = body.__provider || "groq";
+      contBody.max_tokens = budgetedMaxTokens(
+        contBody.messages,
+        contProvider === "nvidia" ? 16384 : model.reasoning ? 4096 : 3072,
+        contProvider
+      );
       console.log(`[stream] cavab kəsildi, avtomatik davam ${i + 1}/${MAX_CONTINUATIONS}`);
-      pass = await pipeOnce(contBody, full.slice(-OVERLAP_SCAN));
+      pass = await pipeOnce(contBody, full.slice(-OVERLAP_SCAN), fenceCount(full) % 2 === 1);
       if (pass.failed) {
         console.warn(`[stream] davam ${i + 1} alınmadı:`, pass.upstream?.status, String(pass.upstream?.errText || "").slice(0, 160));
         break;
       }
       console.log(`[stream] davam ${i + 1}: +${pass.text.length} simvol, finish=${pass.finish}`);
       full += pass.text;
+    }
+
+    // Son qoruyucu: kod bloku açıq qalıbsa (davam limiti bitib və ya model
+    // bağlamayıb) onu bağlayırıq — açıq blok interfeysdə qalan bütün mətni
+    // udur və cavab tamamilə pozulmuş görünür.
+    if (fenceCount(full) % 2 === 1) {
+      console.log("[stream] açıq kod bloku bağlanır");
+      res.write("\n```");
     }
 
     res.end();
@@ -1771,6 +1897,210 @@ YEKUN:
     });
   } catch (err) {
     console.error("Libra xətası:", err);
+    res.status(500).json({ error: "Server xətası" });
+  }
+});
+
+// ============================================================
+// API açarları
+//
+// ARXİTEKTURA QEYDİ — niyə belədir:
+// Bu serverin verilənlər bazası YOXDUR (söhbətlər, yaddaş, layihələr —
+// hamısı klientdə saxlanılır) və Vercel-də fayl sistemi müvəqqətidir.
+// Ona görə açarlar bazada saxlanılmır: açarın ÖZÜ imzalanmış tokendir.
+// Server onu HMAC ilə yoxlayır, heç nə oxumur.
+//
+// Nəticə (açıq şəkildə bilinməlidir): açar müddəti bitənə qədər tək-tək
+// ləğv edilə bilmir. Bütün açarları birdən etibarsız etmək üçün
+// SYNCROM_API_SECRET dəyişdirilir.
+// ============================================================
+const API_KEY_PREFIX = "sk-syncrom";
+const API_KEY_TTL_DAYS = Number(process.env.SYNCROM_API_KEY_TTL_DAYS || 365);
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "syncromai";
+
+// Sirr verilməyibsə hər başlanğıcda təsadüfi yaradılır — bu halda server
+// yenidən başlayanda köhnə açarlar etibarsız olur. Prodda mütləq təyin et.
+const API_SECRET = process.env.SYNCROM_API_SECRET || crypto.randomBytes(32).toString("hex");
+if (!process.env.SYNCROM_API_SECRET) {
+  console.warn(
+    "DİQQƏT: SYNCROM_API_SECRET təyin olunmayıb — müvəqqəti sirr yaradıldı. " +
+      "Server yenidən başlayanda buraxılmış bütün API açarları etibarsız olacaq."
+  );
+}
+
+const b64url = (buf) => Buffer.from(buf).toString("base64url");
+const signPayload = (payloadB64) =>
+  crypto.createHmac("sha256", API_SECRET).update(payloadB64).digest("base64url");
+
+function issueApiKey(uid, name) {
+  const now = Date.now();
+  const payload = {
+    u: uid,
+    k: crypto.randomBytes(8).toString("hex"),
+    i: now,
+    e: now + API_KEY_TTL_DAYS * 24 * 60 * 60 * 1000,
+  };
+  const payloadB64 = b64url(JSON.stringify(payload));
+  return {
+    key: `${API_KEY_PREFIX}.${payloadB64}.${signPayload(payloadB64)}`,
+    keyId: payload.k,
+    name: String(name || "").slice(0, 60),
+    createdAt: payload.i,
+    expiresAt: payload.e,
+  };
+}
+
+function verifyApiKey(raw) {
+  if (typeof raw !== "string") return null;
+  const parts = raw.trim().split(".");
+  if (parts.length !== 3 || parts[0] !== API_KEY_PREFIX) return null;
+  const [, payloadB64, sig] = parts;
+
+  // timingSafeEqual uzunluqlar fərqli olanda atır — əvvəlcə uzunluğu tutuşdur
+  const expected = signPayload(payloadB64);
+  if (sig.length !== expected.length) return null;
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+
+  try {
+    const p = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+    if (!p.u || !p.k || !p.e || Date.now() > p.e) return null;
+    return { uid: p.u, keyId: p.k, expiresAt: p.e };
+  } catch {
+    return null;
+  }
+}
+
+// ---------- Firebase ID token yoxlaması ----------
+// Admin SDK olmadan: Google-un ictimai sertifikatları ilə RS256 imzasını
+// yoxlayırıq. Açar buraxmaq üçün istifadəçinin KİM olduğunu bilmək
+// şərtdir — əks halda endpoint hər kəsə açıq olardı.
+let certCache = { at: 0, certs: null };
+
+async function googleCerts() {
+  // Sertifikatlar gündə bir neçə dəfə dəyişir; 1 saat keş kifayətdir
+  if (certCache.certs && Date.now() - certCache.at < 3600_000) return certCache.certs;
+  const r = await fetch(
+    "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
+    { signal: AbortSignal.timeout(8000) }
+  );
+  if (!r.ok) throw new Error("Google sertifikatları alınmadı");
+  const certs = await r.json();
+  certCache = { at: Date.now(), certs };
+  return certs;
+}
+
+async function verifyFirebaseIdToken(token) {
+  if (typeof token !== "string" || token.split(".").length !== 3) return null;
+  const [headB64, payloadB64, sigB64] = token.split(".");
+
+  let head, payload;
+  try {
+    head = JSON.parse(Buffer.from(headB64, "base64url").toString("utf8"));
+    payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+  if (head.alg !== "RS256" || !head.kid) return null;
+
+  const certs = await googleCerts();
+  const pem = certs[head.kid];
+  if (!pem) return null;
+
+  const publicKey = new crypto.X509Certificate(pem).publicKey;
+  const ok = crypto
+    .createVerify("RSA-SHA256")
+    .update(`${headB64}.${payloadB64}`)
+    .verify(publicKey, Buffer.from(sigB64, "base64url"));
+  if (!ok) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.aud !== FIREBASE_PROJECT_ID) return null;
+  if (payload.iss !== `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`) return null;
+  if (!payload.sub || payload.exp <= now || payload.auth_time > now + 60) return null;
+
+  return { uid: payload.sub, email: payload.email || null };
+}
+
+// Açar buraxma — YALNIZ hesabla girmiş istifadəçi üçün
+app.post("/api/keys/issue", async (req, res) => {
+  try {
+    const auth = req.headers.authorization || "";
+    const idToken = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    const user = await verifyFirebaseIdToken(idToken);
+    if (!user) {
+      return res.status(401).json({ error: "Bu əməliyyat üçün hesaba daxil olmaq lazımdır" });
+    }
+    res.json(issueApiKey(user.uid, req.body?.name));
+  } catch (err) {
+    console.error("Açar buraxma xətası:", err);
+    res.status(500).json({ error: "Server xətası" });
+  }
+});
+
+// ---------- Açarla qorunan ictimai API ----------
+// Sadə, yaddaşda saxlanan sürət limiti. Vercel-də hər instansiya öz
+// sayğacını saxlayır (soyuq başlanğıcda sıfırlanır) — bu, sui-istifadəyə
+// qarşı tam qoruma deyil, əsas həddi qoyan bir tədbirdir.
+const API_RATE_LIMIT = Number(process.env.SYNCROM_API_RATE_LIMIT || 60);
+const apiHits = new Map();
+
+function rateLimited(keyId) {
+  const now = Date.now();
+  const slot = apiHits.get(keyId);
+  if (!slot || now > slot.resetAt) {
+    apiHits.set(keyId, { count: 1, resetAt: now + 60_000 });
+    return false;
+  }
+  slot.count += 1;
+  return slot.count > API_RATE_LIMIT;
+}
+
+function requireApiKey(req, res, next) {
+  const auth = req.headers.authorization || "";
+  const raw = auth.startsWith("Bearer ") ? auth.slice(7) : req.headers["x-api-key"];
+  const info = verifyApiKey(raw);
+  if (!info) {
+    return res.status(401).json({ error: "API açarı yanlışdır və ya müddəti bitib" });
+  }
+  if (rateLimited(info.keyId)) {
+    return res.status(429).json({ error: `Sürət limiti: dəqiqədə ${API_RATE_LIMIT} sorğu` });
+  }
+  req.apiKey = info;
+  next();
+}
+
+app.get("/api/v1/models", requireApiKey, (req, res) => {
+  res.json({
+    default: DEFAULT_MODEL_ID,
+    models: Object.entries(MODELS)
+      .filter(([, m]) => !m.hidden)
+      .map(([id, m]) => ({ id, name: m.name, tag: m.tag, vision: !!m.vision })),
+  });
+});
+
+app.post("/api/v1/chat", requireApiKey, async (req, res) => {
+  try {
+    const { messages, model: modelId } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "messages massivi tələb olunur" });
+    }
+    // Daxili söhbət qurucusunu təkrar işlədirik, amma interfeysə xas
+    // rejimləri (yaddaş, layihə, tərcümə) API-də açmırıq — onlar
+    // istifadəçi seçimidir, proqram interfeysinin işi deyil.
+    const fakeReq = { body: { messages, modelId, uiLang: req.body.lang } };
+    const body = await buildGroqBody(fakeReq, false);
+    const response = await groqRequest(body);
+    if (response.failed) {
+      return res.status(502).json({ error: "Model xətası", details: response.errText?.slice(0, 300) });
+    }
+    const data = await response.json();
+    res.json({
+      model: modelId || DEFAULT_MODEL_ID,
+      reply: data.choices?.[0]?.message?.content || "",
+      usage: data.usage || null,
+    });
+  } catch (err) {
+    console.error("API chat xətası:", err);
     res.status(500).json({ error: "Server xətası" });
   }
 });
