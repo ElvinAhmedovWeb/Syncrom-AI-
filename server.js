@@ -59,6 +59,24 @@ const NVIDIA_URL =
 // dəyişir, ona görə env ilə idarə olunur.
 const NVIDIA_MODEL_CODE = process.env.NVIDIA_MODEL_CODE || "zhipuai/glm-5.2";
 
+// ============================================================
+// Vaxt büdcəsi
+//
+// Vercel-də serverless funksiyanın ömrü məhduddur (Hobby: 60 s). Təkrar
+// cəhdlər və cavab davamı lokal serverə görə ölçülmüşdü — orada limit
+// yoxdur və böyük kod sorğusu ölçmədə 160 saniyə çəkirdi. Vercel isə
+// funksiyanı yarıda öldürür və istifadəçi 502 alır.
+// Ona görə gözləmə/təkrar sayı mühitə görə seçilir.
+// ============================================================
+const IS_SERVERLESS = !!process.env.VERCEL;
+const LIMITS = IS_SERVERLESS
+  ? { max429: 2, wait429Ms: 7000, continuations: 1 }
+  : { max429: 5, wait429Ms: 30000, continuations: 3 };
+// Vercel Hobby limiti 60 s — 45-də dayanırıq ki, cavab çatdırılsın.
+const REQUEST_BUDGET_MS = Number(
+  process.env.SYNCROM_REQUEST_BUDGET_MS || (IS_SERVERLESS ? 45000 : 300000)
+);
+
 const PROVIDERS = {
   groq: {
     url: () => GROQ_URL,
@@ -1112,7 +1130,7 @@ async function groqRequest(rawBody, explicitProvider) {
   // Yəni sual qaçılmaz olaraq iki dəqiqəlik pəncərəyə bölünür və kod bunu
   // səbirlə gözləməlidir, əks halda istifadəçi işləyən funksiyanı sınmış
   // görür.
-  const MAX_429_ATTEMPTS = 5;
+  const MAX_429_ATTEMPTS = LIMITS.max429;
   for (let attempt = 0; attempt < MAX_429_ATTEMPTS && resp.status === 429; attempt++) {
     const errText = await resp.text();
     const m = errText.match(/try again in ([\d.]+)(m?s)/i);
@@ -1125,7 +1143,7 @@ async function groqRequest(rawBody, explicitProvider) {
       // Sonda dayanırıq — istifadəçini sonsuz gözlətmək olmaz
       return { failed: true, status: 429, errText, rateLimited: true };
     }
-    const waitMs = Math.min(Math.max(hintMs + 400, 400), 30000);
+    const waitMs = Math.min(Math.max(hintMs + 400, 400), LIMITS.wait429Ms);
     console.warn(
       `Groq sürət limiti (429), cəhd ${attempt + 1}/${MAX_429_ATTEMPTS - 1} — ${(waitMs / 1000).toFixed(1)}s gözlənilir.`
     );
@@ -1382,6 +1400,7 @@ app.post("/api/chat/stream", async (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("X-Accel-Buffering", "no");
 
+    const startedAt = Date.now();
     let aborted = false;
     let activeReader = null;
     req.on("close", () => {
@@ -1503,9 +1522,16 @@ app.post("/api/chat/stream", async (req, res) => {
     // olanda modeldən dəqiq kəsildiyi yerdən davam etməsini istəyirik və
     // mətni EYNİ axına yazmağa davam edirik, yəni klient tərəfdə bu, tək
     // fasiləsiz cavab kimi görünür.
-    const MAX_CONTINUATIONS = 3;
+    const MAX_CONTINUATIONS = LIMITS.continuations;
     let full = pass.text;
     for (let i = 0; i < MAX_CONTINUATIONS && pass.finish === "length" && !aborted; i++) {
+      // Qəti vaxt qoruyucusu: Vercel funksiyanı 60 saniyədə öldürür və
+      // istifadəçi 502 alır. Büdcəyə yaxınlaşırıqsa davam etməkdənsə
+      // əlimizdə olan (bütöv kod blokuyla bağlanmış) cavabı vermək yaxşıdır.
+      if (Date.now() - startedAt > REQUEST_BUDGET_MS) {
+        console.warn("[stream] vaxt büdcəsi bitdi, davam dayandırıldı");
+        break;
+      }
       // Davam sorğusuna cavabın HAMISINI yox, yalnız QUYRUĞUNU qoyuruq.
       // Tam mətni göndərmək sorğunu limitdən böyük edirdi (HTTP 413) və
       // hər davamda daha da böyüyürdü. Model davam etmək üçün onsuz da
