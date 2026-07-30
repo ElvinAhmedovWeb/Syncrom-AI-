@@ -1026,9 +1026,23 @@ function stripImages(messages) {
 
 async function runAgentLoop(groqMessages, model, onStep = () => {}) {
   let messages = [...groqMessages];
+  // Alət dövrəsi 4 addım × (429 gözləməsi + alət vaxtı) qədər çəkə bilir və
+  // Vercel funksiyanı 60 saniyədə öldürür. Büdcə bitəndə dövrəni kəsib
+  // modeldən yekun cavabı istəyirik — yarımçıq 502-dən yaxşıdır.
+  const deadline = Date.now() + REQUEST_BUDGET_MS;
   for (let i = 0; i < 4; i++) {
     // İlk addımdan sonra şəkli daşımırıq — bax: stripImages
     if (i === 1) messages = stripImages(messages);
+    const outOfTime = Date.now() > deadline;
+    if (outOfTime) {
+      console.warn("[agent] vaxt büdcəsi bitdi — alətsiz yekun cavab istənilir");
+      messages.push({
+        role: "user",
+        content:
+          "Vaxt bitdi. Daha alət ÇAĞIRMA. Əlindəki məlumatla dərhal yekun cavabı yaz; " +
+          "nəyi yoxlaya bilmədinsə bir sətirdə qeyd et.",
+      });
+    }
     const providerName = providerOf(model);
     const resp = await groqRequest(
       {
@@ -1045,8 +1059,9 @@ async function runAgentLoop(groqMessages, model, onStep = () => {}) {
         // dəqiqəlik token büdcəsindən yeyir, ona görə pay dar tutulur.
         // NVIDIA-da belə hədd yoxdur — orada əliaçıq davranırıq.
         max_tokens: budgetedMaxTokens(messages, providerName === "nvidia" ? 8192 : 2048, providerName),
-        tools: AGENT_TOOLS,
-        tool_choice: "auto",
+        // Vaxt bitibsə alətləri tamamilə götürürük — yalnız "çağırma" demək
+        // kifayət etmir, model yenə cəhd edə bilər.
+        ...(outOfTime ? {} : { tools: AGENT_TOOLS, tool_choice: "auto" }),
       },
       providerName
     );
