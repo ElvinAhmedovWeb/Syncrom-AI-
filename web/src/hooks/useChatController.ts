@@ -14,6 +14,7 @@ import {
   type VirgoResult,
 } from "../lib/api";
 import { stripForSpeech } from "../lib/markdown";
+import { exportAsSlides } from "../lib/slideExport";
 import { blobToDataUrl } from "../lib/image";
 import { useI18n } from "../lib/i18n";
 import {
@@ -88,6 +89,7 @@ export function useChatController({
     () => localStorage.getItem(TRANSLATE_TARGET_KEY) || "en"
   );
   const [autoSpeak, setAutoSpeak] = useState(false);
+  const [slideMode, setSlideMode] = useState(false);
   const [streamDraft, setStreamDraft] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<SpeakState>(null);
 
@@ -392,6 +394,7 @@ export function useChatController({
         setStatusText(t("status.ready"));
         void maybeTitleAndPersist(finalChat);
         if (autoSpeak) void speak(acc, String(finalMessages.length - 1));
+        if (slideMode) exportAsSlides(acc);
 
         // Cavabdan sonrakı işlər cavabı bloklamır — paralel və "sükutlu"
         // işləyir, uğursuz olsa istifadəçi heç nə görmür.
@@ -463,6 +466,7 @@ export function useChatController({
       lang,
       t,
       autoSpeak,
+      slideMode,
       maybeTitleAndPersist,
       persistMemories,
     ]
@@ -728,6 +732,13 @@ export function useChatController({
 
   const toggleAutoSpeak = useCallback(() => setAutoSpeak((v) => !v), []);
 
+  const toggleSlideMode = useCallback(() => {
+    setSlideMode((v) => {
+      if (!v) { setImageGenMode(false); setTranslateMode(false); setLibraMode(false); }
+      return !v;
+    });
+  }, []);
+
   // ---------- Yaddaş idarəetməsi ----------
   const addMemory = useCallback(
     (text: string) => {
@@ -891,6 +902,8 @@ export function useChatController({
     selectTranslateTo,
     autoSpeak,
     toggleAutoSpeak,
+    slideMode,
+    toggleSlideMode,
     streamDraft,
     sendMessage,
     stop,

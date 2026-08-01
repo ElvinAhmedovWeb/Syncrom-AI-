@@ -44,6 +44,8 @@ interface Props {
   onToggleTranslate: () => void;
   translateTo: string;
   onSelectTranslateTo: (code: string) => void;
+  slideModeActive: boolean;
+  onToggleSlideMode: () => void;
   hint: string;
   placeholder: string;
 }
@@ -79,6 +81,8 @@ export default function Composer({
   onToggleTranslate,
   translateTo,
   onSelectTranslateTo,
+  slideModeActive,
+  onToggleSlideMode,
   hint,
   placeholder,
 }: Props) {
@@ -125,7 +129,7 @@ export default function Composer({
 
   return (
     <footer className="composer">
-      {(imageGenActive || deepThinkActive || agentModeActive || webSearchActive || translateActive || libraActive) && (
+      {(imageGenActive || deepThinkActive || agentModeActive || webSearchActive || translateActive || libraActive || slideModeActive) && (
         <div className="mode-pills">
           {imageGenActive && (
             <span className="mode-pill">
@@ -215,6 +219,16 @@ export default function Composer({
               <button type="button" onClick={onToggleAgentMode} aria-label={t("composer.turnOff")}>×</button>
             </span>
           )}
+          {slideModeActive && (
+            <span className="mode-pill">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+              {t("mode.slide")}
+              <button type="button" onClick={onToggleSlideMode} aria-label={t("composer.turnOff")}>×</button>
+            </span>
+          )}
         </div>
       )}
 
@@ -248,6 +262,8 @@ export default function Composer({
           translateTo={translateTo}
           onSelectTranslateTo={onSelectTranslateTo}
           onUploadDocument={() => documentInputRef.current?.click()}
+          slideModeActive={slideModeActive}
+          onToggleSlideMode={onToggleSlideMode}
         />
         <input
           ref={fileInputRef}

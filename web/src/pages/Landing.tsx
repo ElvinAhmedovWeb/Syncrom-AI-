@@ -21,6 +21,7 @@ const HERO_CHIPS = [
   { label: "Vella", tagClass: "l-tag-vella" },
   { label: "Trila", tagClass: "l-tag-trila" },
   { label: "Schala", tagClass: "l-tag-schala" },
+  { label: "Noemel", tagClass: "l-tag-schala" },
 ];
 
 const WindowsIcon = () => (
@@ -69,7 +70,7 @@ export default function Landing() {
     { title: t("l.feat.securityT"), desc: t("l.feat.securityD"), icon: <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> },
     { title: t("l.feat.speedT"), desc: t("l.feat.speedD"), icon: <path d="M13 10V3L4 14h7v7l9-11h-7z" /> },
     { title: t("l.feat.langT"), desc: t("l.feat.langD"), icon: <path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10" /> },
-    { title: t("l.feat.visionT"), desc: t("l.feat.visionD"), icon: <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" /> },
+    { title: t("l.feat.visionT"), desc: t("l.feat.visionD"), icon: <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a2 2 0 012-2V8a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" /> },
     { title: t("l.feat.imgGenT"), desc: t("l.feat.imgGenD"), icon: <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" /> },
     { title: t("l.feat.agentT"), desc: t("l.feat.agentD"), icon: <path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 5l-2 14" /> },
     { title: t("l.feat.deepT"), desc: t("l.feat.deepD"), icon: <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" /> },
@@ -79,7 +80,7 @@ export default function Landing() {
 
   const STATS = [
     { num: String(models.length || 8), label: t("l.stats.models") },
-    { num: "2", label: t("l.stats.apps") },
+    { num: "3", label: t("l.stats.apps") },
     { num: "4", label: t("l.stats.langs") },
     { num: "0 ₼", label: t("l.stats.price") },
   ];
@@ -378,6 +379,56 @@ export default function Landing() {
         </div>
       </section>
 
+      <section id="noemel" className="l-schala" style={{ background: "linear-gradient(180deg, rgba(139, 92, 246, 0.05), transparent)" }}>
+        <div className="l-container l-schala-grid">
+          <motion.div
+            className="l-schala-copy"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6, ease: EASE_OUT }}
+          >
+            <div className="l-tag" style={{ color: "#a855f7", borderColor: "rgba(168, 85, 247, 0.3)" }}>
+              <span className="l-dot" style={{ background: "#a855f7" }} /> Yeni · Bulud İş Sahəsi
+            </div>
+            <h2>
+              Rocket Replit tipli <strong>Noemel Dashboard</strong>
+            </h2>
+            <p className="l-desc">
+              Noemel — layihələrinizi buludda idarə etmək, işə salmaq və instant yerləşdirmək üçün hazırlanmış developer mühitidir. Canlı resurs izləməsi, sandbox konteynerləri və interaktiv terminal.
+            </p>
+            <ul className="l-schala-points">
+              <li>Bulud konteynerləri (React, Python, Node.js, HTML)</li>
+              <li>Canlı terminal konsolu və yığım logları</li>
+              <li>Edge CDN üzərində instant yerləşdirmə (Deploy)</li>
+            </ul>
+            <div className="l-schala-actions">
+              <a href="/noemel" className="l-btn l-btn-primary" style={{ background: "#8b5cf6" }}>
+                🚀 Noemel Dashboard-a Keç
+              </a>
+            </div>
+          </motion.div>
+
+          <motion.div
+            className="l-schala-shot"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.6, delay: 0.1, ease: EASE_OUT }}
+          >
+            <div className="l-shot-frame" style={{ borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "16px", overflow: "hidden" }}>
+              <div className="l-shot-bar">
+                <span className="l-schala-mockdot" />
+                <span className="l-schala-mockdot" />
+                <span className="l-schala-mockdot" />
+                <span className="l-schala-mock-title">Noemel Cloud Workspace — Replit Style</span>
+              </div>
+              <img src="/NoEmEl.png" alt="Noemel Dashboard" loading="lazy" style={{ width: "100%", height: "auto", display: "block" }} />
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       <section id="demo" className="l-demo">
         <div className="l-container">
           <motion.div
@@ -404,7 +455,7 @@ export default function Landing() {
             <video
               ref={videoRef}
               className="l-demo-video"
-              poster="/schala-preview.png"
+              poster="/schala_landing.mp4"
               preload="none"
               playsInline
               controls={playing}

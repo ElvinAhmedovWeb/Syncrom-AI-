@@ -255,6 +255,13 @@ const azCore = {
   "art.download": "Endir",
   "art.close": "Bağla",
 
+  // ---------- Slayd / PDF ----------
+  "plus.slide": "Slayd hazırla",
+  "plus.slideSub": "Cavabı PDF slayd kimi endir",
+  "mode.slide": "Slayd rejimi",
+  "msg.slide": "Slayd",
+  "status.creatingSlide": "Slayd yaradılır...",
+
   // ---------- Alət addımları ----------
   "step.web_search": "İnternetdə axtarır",
   "step.read_url": "Səhifə oxunur",
@@ -487,6 +494,12 @@ const enCore = {
   "art.download": "Download",
   "art.close": "Close",
 
+  "plus.slide": "Create slides",
+  "plus.slideSub": "Download reply as PDF slides",
+  "mode.slide": "Slide mode",
+  "msg.slide": "Slides",
+  "status.creatingSlide": "Creating slides...",
+
   "step.web_search": "Searching the web",
   "step.read_url": "Reading page",
   "step.execute_code": "Running code",
@@ -710,6 +723,12 @@ const ruCore = {
   "art.download": "Скачать",
   "art.close": "Закрыть",
 
+  "plus.slide": "Создать слайды",
+  "plus.slideSub": "Скачать ответ как PDF-слайды",
+  "mode.slide": "Режим слайдов",
+  "msg.slide": "Слайды",
+  "status.creatingSlide": "Создаю слайды...",
+
   "step.web_search": "Поиск в интернете",
   "step.read_url": "Читаю страницу",
   "step.execute_code": "Выполняю код",
@@ -932,6 +951,12 @@ const trCore = {
   "art.openTab": "Yeni sekmede aç",
   "art.download": "İndir",
   "art.close": "Kapat",
+
+  "plus.slide": "Slayt oluştur",
+  "plus.slideSub": "Yanıtı PDF slayt olarak indir",
+  "mode.slide": "Slayt modu",
+  "msg.slide": "Slayt",
+  "status.creatingSlide": "Slayt oluşturuluyor...",
 
   "step.web_search": "İnternette arıyor",
   "step.read_url": "Sayfa okunuyor",

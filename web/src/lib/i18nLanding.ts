@@ -16,6 +16,10 @@ export const landingAz = {
   "l.nav.features": "Xüsusiyyətlər",
   "l.nav.faq": "FAQ",
   "l.nav.start": "Başla",
+  "l.nav.noemel": "Noemel",
+  "l.noemel.tag": "Bulud İş sahəsi & Dashboard",
+  "l.noemel.desc": "Noemel - layihələrinizi idarə etmək, işə salmaq və buludda yerləşdirmək üçün Rocket Replit tipli developer dashboardıdır.",
+  "l.noemel.button": "Dashboard-a keç",
 
   // ---------- Hero ----------
   "l.hero.pill": "Azərbaycan dilində süni zəka",
@@ -184,6 +188,10 @@ export const landingEn: LandingDict = {
   "l.nav.features": "Features",
   "l.nav.faq": "FAQ",
   "l.nav.start": "Get started",
+  "l.nav.noemel": "Noemel",
+  "l.noemel.tag": "Cloud Workspace & Dashboard",
+  "l.noemel.desc": "Noemel is a Rocket Replit-like developer dashboard for managing, running, and deploying your projects in the cloud.",
+  "l.noemel.button": "Go to Dashboard",
 
   "l.hero.pill": "AI that speaks your language",
   "l.hero.h1": "Expand how you think, with AI",
@@ -335,6 +343,10 @@ export const landingRu: LandingDict = {
   "l.nav.features": "Возможности",
   "l.nav.faq": "Вопросы",
   "l.nav.start": "Начать",
+  "l.nav.noemel": "Noemel",
+  "l.noemel.tag": "Облачное пространство и Панель",
+  "l.noemel.desc": "Noemel — это панель разработчика в стиле Rocket Replit для управления, запуска и развертывания проектов в облаке.",
+  "l.noemel.button": "Перейти в Панель",
 
   "l.hero.pill": "Искусственный интеллект на вашем языке",
   "l.hero.h1": "Расширьте своё мышление с помощью ИИ",
@@ -486,6 +498,10 @@ export const landingTr: LandingDict = {
   "l.nav.features": "Özellikler",
   "l.nav.faq": "SSS",
   "l.nav.start": "Başla",
+  "l.nav.noemel": "Noemel",
+  "l.noemel.tag": "Bulut Çalışma Alanı & Panel",
+  "l.noemel.desc": "Noemel, projelerinizi bulutta yönetmek, çalıştırmak ve dağıtmak için Rocket Replit benzeri bir geliştirici panelidir.",
+  "l.noemel.button": "Panele Git",
 
   "l.hero.pill": "Kendi dilinizde yapay zekâ",
   "l.hero.h1": "Yapay zekâ ile düşünme biçiminizi genişletin",

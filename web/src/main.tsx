@@ -4,6 +4,7 @@ import "./styles/theme.css";
 import "./styles/app.css";
 import "./styles/landing.css";
 import "./styles/schala.css";
+import "./styles/noemel.css";
 import App from "./App.tsx";
 
 createRoot(document.getElementById("root")!).render(

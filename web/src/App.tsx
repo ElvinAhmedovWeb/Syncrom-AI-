@@ -5,6 +5,7 @@ import About from "./pages/About";
 import ChatPage from "./pages/Chat";
 import VellaPage from "./pages/Vella";
 import SchalaPage from "./pages/Schala";
+import NoemelPage from "./pages/Noemel";
 import { LanguageProvider } from "./lib/i18n";
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/vella" element={<VellaPage />} />
           <Route path="/schala" element={<SchalaPage />} />
+          <Route path="/noemel" element={<NoemelPage />} />
         </Routes>
       </BrowserRouter>
     </LanguageProvider>

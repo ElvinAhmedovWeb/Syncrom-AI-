@@ -1,6 +1,7 @@
 import { useMemo, type MouseEvent } from "react";
 import { motion } from "framer-motion";
 import { renderMarkdown, type ArtifactKind } from "../lib/markdown";
+import { exportAsSlides } from "../lib/slideExport";
 import { EASE_OUT } from "../lib/motion";
 import { useT, type TFunc, type TKey } from "../lib/i18n";
 import type { AgentStep, VirgoResult } from "../lib/api";
@@ -192,6 +193,14 @@ export default function MessageBubble({
             {withRegen && (
               <button className="action-btn" onClick={onRegenerate}>
                 ↻ {t("msg.regenerate")}
+              </button>
+            )}
+            {!isUser && message.content.length > 100 && (
+              <button
+                className="action-btn slide-btn"
+                onClick={() => exportAsSlides(message.content)}
+              >
+                📄 {t("msg.slide")}
               </button>
             )}
             {onVirgo && (

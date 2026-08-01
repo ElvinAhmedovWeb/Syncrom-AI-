@@ -23,6 +23,8 @@ interface Props {
   translateTo: string;
   onSelectTranslateTo: (code: string) => void;
   onUploadDocument: () => void;
+  slideModeActive: boolean;
+  onToggleSlideMode: () => void;
 }
 
 export default function PlusMenu({
@@ -45,6 +47,8 @@ export default function PlusMenu({
   translateTo,
   onSelectTranslateTo,
   onUploadDocument,
+  slideModeActive,
+  onToggleSlideMode,
 }: Props) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -171,6 +175,24 @@ export default function PlusMenu({
               {imageGenActive && <span className="plus-menu-check">✓</span>}
             </button>
           )}
+
+          <button
+            type="button"
+            className={`plus-menu-item${slideModeActive ? " active" : ""}`}
+            onClick={() => { onToggleSlideMode(); closeAll(); }}
+          >
+            <span className="plus-menu-icon">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <path d="M8 21h8M12 17v4" />
+              </svg>
+            </span>
+            <span className="plus-menu-text">
+              <b>{t("plus.slide")}</b>
+              <small>{t("plus.slideSub")}</small>
+            </span>
+            {slideModeActive && <span className="plus-menu-check">✓</span>}
+          </button>
 
           <button
             type="button"
