@@ -99,6 +99,7 @@ export default function ChatShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [pendingDocument, setPendingDocument] = useState<{name: string, text: string} | null>(null);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [darkMode, setDarkMode] = useState(() => theme === "syncrom" && localStorage.getItem("syncrom_dark") === "1");
 
@@ -130,11 +131,15 @@ export default function ChatShell({
   const agentToolsEnabled = !fixedModelId && ctrl.models.length > 0;
 
   function doSend(text?: string) {
-    const value = (text ?? input).trim();
+    let value = (text ?? input).trim();
+    if (pendingDocument) {
+      value = `\`\`\`\n// ${pendingDocument.name}\n${pendingDocument.text.slice(0, 15000)}\n\`\`\`\n\n${value}`;
+    }
     if (!value && !pendingImage) return;
     ctrl.sendMessage(value, pendingImage);
     setInput("");
     setPendingImage(null);
+    setPendingDocument(null);
   }
 
   function handleEdit(index: number) {
@@ -354,6 +359,8 @@ export default function ChatShell({
           visionEnabled={visionEnabled}
           pendingImage={pendingImage}
           onImageChange={setPendingImage}
+          pendingDocument={pendingDocument}
+          onDocumentChange={setPendingDocument}
           micSupported={speechInput.supported}
           recording={speechInput.recording}
           onMicToggle={speechInput.toggle}

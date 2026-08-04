@@ -1,182 +1,378 @@
 /* ============================================================
-   Noemel — Clean Chat Agent Interface (Replit-style)
-   Light theme, minimal, modern
+   Noemel AI Platform — Ultra-Premium Apple x Anthropic Design
    ============================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap');
+
+:root {
+  /* Colors */
+  --noemel-bg: #000000;
+  --noemel-panel-bg: #0E0E0E;
+  --noemel-card-bg: #141414;
+  --noemel-border: #242424;
+  --noemel-border-hover: #333333;
+  
+  --noemel-text-main: #FFFFFF;
+  --noemel-text-secondary: #A3A3A3;
+  --noemel-text-muted: #6B6B6B;
+  
+  /* Radii */
+  --radius-button: 999px;
+  --radius-input: 24px;
+  --radius-card: 28px;
+  --radius-panel: 32px;
+  
+  /* Shadows */
+  --shadow-soft: 0 32px 64px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-glow: 0 0 32px rgba(255, 255, 255, 0.06);
+  
+  /* Fonts */
+  --font-primary: 'Satoshi', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: 'Instrument Serif', Canela, Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--noemel-bg);
+  color: var(--noemel-text-main);
+  font-family: var(--font-primary);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base Shell */
 .noemel-shell {
   display: flex;
   width: 100%;
   height: 100vh;
-  background: #ffffff;
-  color: #1a1a1a;
-  font-family: var(--font-body);
+  background: var(--noemel-bg);
+  color: var(--noemel-text-main);
+  font-family: var(--font-primary);
   overflow: hidden;
+  position: relative;
+}
+
+/* Animations */
+@keyframes softFadeIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slowSpring {
+  0% { transform: translateY(12px) scale(0.98); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 /* ======================== SIDEBAR ======================== */
 .noemel-sidebar {
-  width: 240px;
+  width: 264px;
   height: 100%;
-  background: #f7f7f7;
-  border-right: 1px solid #e5e5e5;
+  background: var(--noemel-bg);
+  border-right: 1px solid var(--noemel-border);
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
+  padding: 24px 16px;
   flex-shrink: 0;
-  transition: width 0.25s ease;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 30;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .noemel-sidebar.collapsed {
-  width: 56px;
-  padding: 16px 8px;
+  width: 72px;
+  padding: 24px 16px;
+}
+
+.noemel-brand-text,
+.noemel-nav-text,
+.noemel-newchat-text,
+.noemel-chat-item-text,
+.noemel-user-details,
+.noemel-chat-delete-btn {
+  transition: opacity 0.2s ease, width 0.3s ease;
+  opacity: 1;
 }
 
 .noemel-sidebar.collapsed .noemel-brand-text,
-.noemel-sidebar.collapsed .noemel-search-input,
+.noemel-sidebar.collapsed .noemel-nav-text,
 .noemel-sidebar.collapsed .noemel-newchat-text,
+.noemel-sidebar.collapsed .noemel-chat-item-text,
 .noemel-sidebar.collapsed .noemel-user-details,
-.noemel-sidebar.collapsed .noemel-chat-list,
-.noemel-sidebar.collapsed .noemel-search-icon-label {
+.noemel-sidebar.collapsed .noemel-chat-delete-btn {
   display: none;
 }
 
-.noemel-sidebar.collapsed .noemel-search-bar {
-  width: 36px;
+.noemel-sidebar.collapsed .noemel-newchat-btn,
+.noemel-sidebar.collapsed .noemel-nav-item,
+.noemel-sidebar.collapsed .noemel-chat-item,
+.noemel-sidebar.collapsed .noemel-user-row {
+  width: 40px;
+  height: 40px;
   padding: 0;
+  justify-content: center;
+  gap: 0;
+}
+
+.noemel-sidebar.collapsed .noemel-brand-row {
   justify-content: center;
 }
 
-.noemel-sidebar.collapsed .noemel-newchat-btn {
-  width: 36px;
-  padding: 0;
-  justify-content: center;
+.noemel-sidebar.collapsed .noemel-brand-left {
+  display: none;
 }
 
-/* ---- Top: Brand Row ---- */
+/* Brand */
 .noemel-brand-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 32px;
   padding: 0 4px;
 }
 
 .noemel-brand-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   text-decoration: none;
-  color: #1a1a1a;
+  color: var(--noemel-text-main);
 }
 
 .noemel-brand-icon {
-  width: 28px;
-  height: 28px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.noemel-brand-icon svg {
-  width: 24px;
-  height: 24px;
+.noemel-animated-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
 }
 
 .noemel-brand-text {
-  font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: #1a1a1a;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--noemel-text-main);
 }
 
 .noemel-hamburger {
-  background: none;
+  background: transparent;
   border: none;
+  color: var(--noemel-text-muted);
   cursor: pointer;
-  padding: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-button);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1a1a1a;
-  border-radius: 6px;
-  transition: background 0.15s;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .noemel-hamburger:hover {
-  background: rgba(0,0,0,0.06);
+  background: var(--noemel-card-bg);
+  color: var(--noemel-text-main);
 }
 
-/* ---- Search bar ---- */
-.noemel-search-bar {
+/* Search Modal */
+.noemel-search-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 15vh;
+  animation: softFadeIn 0.2s ease;
+}
+
+.noemel-search-modal-content {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #ebebeb;
-  border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  transition: background 0.15s;
+  gap: 12px;
+  background: var(--noemel-card-bg);
+  border: 1px solid var(--noemel-border);
+  border-radius: var(--radius-card);
+  padding: 16px 20px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
-.noemel-search-bar:focus-within {
-  background: #e0e0e0;
-}
-
-.noemel-search-bar svg {
-  width: 16px;
-  height: 16px;
-  color: #888;
-  flex-shrink: 0;
+.noemel-search-modal-content svg {
+  color: var(--noemel-text-muted);
+  stroke-width: 1.5;
 }
 
 .noemel-search-input {
   background: none;
   border: none;
   outline: none;
-  font-size: 14px;
-  color: #1a1a1a;
+  font-size: 16px;
+  color: var(--noemel-text-main);
   width: 100%;
-  font-family: inherit;
+  font-family: var(--font-primary);
 }
 
 .noemel-search-input::placeholder {
-  color: #999;
+  color: var(--noemel-text-muted);
 }
 
-/* ---- New Chat button ---- */
+.noemel-shortcut-badge {
+  background: var(--noemel-border);
+  color: var(--noemel-text-secondary);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* Sidebar Navigation */
+.noemel-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 24px;
+}
+
+.noemel-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--noemel-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.noemel-nav-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+.noemel-nav-item.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 500;
+}
+
+.noemel-nav-item svg {
+  width: 16px;
+  height: 16px;
+  color: inherit;
+  stroke-width: 1.5;
+}
+
+.noemel-nav-text {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.noemel-nav-divider {
+  border: 0;
+  height: 1px;
+  background: var(--noemel-border);
+  margin: 12px 0;
+}
+
+/* Profile Dropdown */
+.noemel-profile-dropdown {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  width: 100%;
+  background: var(--noemel-card-bg);
+  border: 1px solid var(--noemel-border);
+  border-radius: var(--radius-card);
+  padding: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 100;
+  animation: softFadeIn 0.2s ease;
+}
+
+.noemel-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-button);
+  font-size: 14px;
+  color: var(--noemel-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.noemel-dropdown-item:hover {
+  background: var(--noemel-panel-bg);
+  color: var(--noemel-text-main);
+}
+
+/* New Chat */
 .noemel-newchat-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #1a1a1a;
-  color: #ffffff;
-  border: none;
+  gap: 10px;
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  margin-bottom: 24px;
+  width: 100%;
 }
 
 .noemel-newchat-btn:hover {
-  background: #333;
-  transform: translateY(-1px);
-}
-
-.noemel-newchat-btn:active {
-  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .noemel-newchat-btn svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
+  color: #fff;
+  stroke-width: 1.5;
 }
 
-/* ---- Chat list ---- */
+/* Chat List */
+.noemel-sidebar-section-title {
+  padding: 0 10px 8px 10px;
+}
+
+.noemel-section-text {
+  font-size: 11px;
+  color: #6B6B6B;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.noemel-sidebar.collapsed .noemel-section-text {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .noemel-chat-list {
   flex: 1;
   display: flex;
@@ -186,76 +382,145 @@
   padding-right: 4px;
 }
 
+.noemel-chat-list::-webkit-scrollbar {
+  width: 4px;
+}
+.noemel-chat-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
 .noemel-chat-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 6px 10px;
   border-radius: 8px;
-  font-size: 14px;
-  color: #555;
+  font-size: 13px;
+  color: var(--noemel-text-secondary);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   border: none;
-  background: none;
+  background: transparent;
   width: 100%;
   text-align: left;
-  font-family: inherit;
+  font-family: var(--font-primary);
 }
 
 .noemel-chat-item:hover {
-  background: rgba(0,0,0,0.05);
-  color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  transform: translateX(4px);
 }
 
 .noemel-chat-item.active {
-  background: rgba(0,0,0,0.08);
-  color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
   font-weight: 500;
 }
 
 .noemel-chat-item svg {
+  min-width: 16px;
   width: 16px;
   height: 16px;
-  flex-shrink: 0;
-  opacity: 0.5;
+  color: var(--noemel-text-muted);
+  stroke-width: 1.5;
+}
+
+.noemel-chat-item.active svg {
+  color: inherit;
 }
 
 .noemel-chat-item-text {
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
 }
 
-/* ---- User section at bottom ---- */
+.noemel-chat-delete-btn {
+  background: none;
+  border: none;
+  color: var(--noemel-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.noemel-chat-item:hover .noemel-chat-delete-btn {
+  opacity: 1;
+}
+
+.noemel-chat-delete-btn:hover {
+  color: #ef4444; /* red */
+}
+
+/* User Profile */
 .noemel-sidebar-bottom {
-  border-top: 1px solid #e5e5e5;
-  padding-top: 14px;
-  margin-top: 12px;
+  margin-top: auto;
+  padding-top: 16px;
+  position: relative;
 }
 
 .noemel-user-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 4px;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.noemel-user-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.noemel-export-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-input);
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--noemel-text-secondary);
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.noemel-export-btn:hover {
+  background: var(--noemel-panel-bg);
+  color: var(--noemel-text-main);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.noemel-user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
 }
 
 .noemel-user-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #ddd;
+  background: var(--noemel-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-
-.noemel-user-avatar svg {
-  width: 20px;
-  height: 20px;
-  color: #666;
+  color: var(--noemel-text-secondary);
 }
 
 .noemel-user-details {
@@ -265,81 +530,119 @@
 
 .noemel-user-name {
   font-size: 14px;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-weight: 500;
+  color: var(--noemel-text-main);
 }
 
 .noemel-user-email {
-  font-size: 12px;
-  color: #888;
+  font-size: 13px;
+  color: var(--noemel-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.noemel-user-action {
-  background: #1a1a1a;
+.noemel-settings-btn {
+  background: transparent;
   border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-button);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #fff;
-  transition: background 0.15s;
-  flex-shrink: 0;
+  color: var(--noemel-text-muted);
+  transition: all 0.3s ease;
 }
 
-.noemel-user-action:hover {
-  background: #333;
+.noemel-settings-btn:hover {
+  background: var(--noemel-panel-bg);
+  color: var(--noemel-text-main);
+  transform: rotate(45deg);
 }
 
-/* ======================== MAIN AREA ======================== */
-.noemel-main {
+
+/* ======================== MIDDLE PANEL: CHAT ======================== */
+.noemel-builder-split {
   flex: 1;
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.noemel-left-panel {
+  flex: 1;
+  max-width: 880px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  position: relative;
+  background: var(--noemel-bg);
+  border-right: 1px solid var(--noemel-border);
+  margin: 0 auto;
+}
+
+.noemel-left-panel.no-border {
+  border-right: none;
+}
+
+/* Welcome */
+.noemel-welcome-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
   height: 100%;
-  padding: 40px 32px;
-  position: relative;
-}
-
-/* ---- Welcome heading ---- */
-.noemel-welcome-heading {
-  font-family: var(--font-display);
-  font-size: 36px;
-  font-weight: 800;
-  color: #1a1a1a;
-  margin-bottom: 32px;
   text-align: center;
-  letter-spacing: -0.5px;
+  padding: 0 32px;
+  animation: softFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ---- Composer (input box) ---- */
+.noemel-welcome-heading {
+  font-family: var(--font-serif);
+  font-size: 64px;
+  font-weight: 400;
+  color: var(--noemel-text-main);
+  margin-bottom: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.noemel-welcome-sub {
+  font-size: 16px;
+  color: var(--noemel-text-secondary);
+  margin-bottom: 64px;
+  font-weight: 400;
+}
+
+/* Composer */
 .noemel-composer-wrapper {
   width: 100%;
-  max-width: 620px;
+  max-width: 720px;
+  position: relative;
+  margin: 0 auto;
 }
 
 .noemel-composer {
-  background: #ffffff;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 16px;
-  padding: 16px 18px;
+  background: var(--noemel-panel-bg);
+  border: 1px solid var(--noemel-border);
+  border-radius: var(--radius-input);
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  gap: 16px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
 }
 
 .noemel-composer:focus-within {
-  border-color: #ccc;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  background: var(--noemel-card-bg);
+  border-color: #333333;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4), var(--shadow-glow);
+  transform: translateY(-2px);
 }
 
 .noemel-composer-textarea {
@@ -348,16 +651,16 @@
   outline: none;
   resize: none;
   font-size: 16px;
-  font-family: inherit;
-  color: #1a1a1a;
+  font-family: var(--font-primary);
+  color: var(--noemel-text-main);
   background: transparent;
-  line-height: 1.5;
+  line-height: 1.6;
   min-height: 48px;
-  max-height: 200px;
+  max-height: 320px;
 }
 
 .noemel-composer-textarea::placeholder {
-  color: #aaa;
+  color: var(--noemel-text-muted);
 }
 
 .noemel-composer-bottom {
@@ -366,163 +669,777 @@
   justify-content: space-between;
 }
 
-.noemel-composer-plus {
-  background: none;
+.noemel-composer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.noemel-composer-plus,
+.noemel-composer-mic {
+  background: transparent;
   border: none;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  color: #888;
-  font-size: 22px;
-  transition: background 0.15s, color 0.15s;
+  border-radius: var(--radius-button);
+  color: var(--noemel-text-muted);
+  transition: all 0.3s ease;
 }
 
-.noemel-composer-plus:hover {
-  background: #f0f0f0;
-  color: #1a1a1a;
+.noemel-composer-plus:hover,
+.noemel-composer-mic:hover {
+  background: var(--noemel-border);
+  color: var(--noemel-text-main);
+  transform: scale(1.1);
+}
+
+.noemel-composer-mic.recording {
+  color: #fff;
+  background: #333333;
 }
 
 .noemel-composer-send {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #1a1a1a;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-button);
+  background: var(--noemel-text-main);
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  transition: background 0.15s, transform 0.1s;
+  color: var(--noemel-bg);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.noemel-composer-send:hover {
-  background: #333;
-}
-
-.noemel-composer-send:active {
-  transform: scale(0.93);
+.noemel-composer-send:hover:not(.disabled) {
+  transform: scale(0.95);
+  opacity: 0.9;
 }
 
 .noemel-composer-send.disabled {
-  background: #ccc;
-  cursor: default;
+  background: var(--noemel-border);
+  color: var(--noemel-text-muted);
+  cursor: not-allowed;
 }
 
-.noemel-composer-send svg {
-  width: 18px;
-  height: 18px;
+.noemel-composer-stop {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-button);
+  background: var(--noemel-border);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--noemel-text-main);
 }
 
-/* ---- Chat messages area ---- */
+/* Suggestions */
+.noemel-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.noemel-suggestion-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 1px solid var(--noemel-border);
+  border-radius: var(--radius-button);
+  padding: 12px 20px;
+  font-size: 14px;
+  color: var(--noemel-text-secondary);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.noemel-suggestion-chip:hover {
+  background: var(--noemel-panel-bg);
+  color: var(--noemel-text-main);
+  border-color: #333333;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.noemel-suggestion-chip svg {
+  stroke-width: 1.5;
+  color: var(--noemel-text-muted);
+}
+
+/* Chat Area */
+.noemel-chat-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding-top: 48px;
+}
+
 .noemel-messages-area {
   flex: 1;
   width: 100%;
-  max-width: 720px;
+  max-width: 760px;
+  margin: 0 auto;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding-bottom: 24px;
+  gap: 48px;
+  padding: 0 32px 48px 32px;
+}
+
+.noemel-messages-area::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
 }
 
 .noemel-msg {
   display: flex;
-  gap: 12px;
+  gap: 20px;
   align-items: flex-start;
+  animation: softFadeIn 0.5s ease;
 }
 
 .noemel-msg-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .noemel-msg-avatar.user {
-  background: #e8e8e8;
-  color: #555;
+  background: var(--noemel-panel-bg);
+  border: 1px solid var(--noemel-border);
+  color: var(--noemel-text-secondary);
 }
 
-.noemel-msg-avatar.bot {
-  background: #1a1a1a;
-  color: #fff;
+.noemel-msg-avatar.assistant {
+  background: transparent;
+}
+
+.noemel-msg-avatar.assistant img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .noemel-msg-body {
   flex: 1;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--noemel-text-main);
+  padding-top: 2px;
+}
+
+.noemel-msg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.noemel-msg-header strong {
   font-size: 15px;
-  line-height: 1.65;
-  color: #333;
+  font-weight: 500;
+  color: var(--noemel-text-main);
 }
 
-.noemel-msg-body strong {
-  font-weight: 600;
-  color: #1a1a1a;
+.noemel-tts-btn {
+  background: none;
+  border: none;
+  color: var(--noemel-text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-button);
+  transition: all 0.2s ease;
 }
 
-/* ---- Composer wrapper at bottom ---- */
+.noemel-tts-btn:hover {
+  color: var(--noemel-text-main);
+  background: var(--noemel-panel-bg);
+}
+
+.noemel-msg-rendered {
+  color: var(--noemel-text-main);
+}
+
+.noemel-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #a1a1aa;
+  font-size: 15px;
+  font-weight: 500;
+  animation: pulse-thinking 2s infinite ease-in-out;
+}
+
+@keyframes pulse-thinking {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.noemel-msg-rendered p {
+  margin-bottom: 20px;
+}
+
+.noemel-msg-rendered code {
+  background: var(--noemel-panel-bg);
+  border: 1px solid var(--noemel-border);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--noemel-text-main);
+}
+
+.noemel-msg-rendered pre {
+  margin: 24px 0;
+  background: var(--noemel-panel-bg);
+  border: 1px solid var(--noemel-border);
+  border-radius: 16px;
+  overflow-x: auto;
+  padding: 24px;
+}
+
 .noemel-bottom-composer {
   width: 100%;
-  max-width: 720px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* ---- Suggestion chips ---- */
-.noemel-suggestions {
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.05); border-bottom: 1px solid var(--border);
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   justify-content: center;
-  margin-top: 20px;
 }
 
-.noemel-suggestion-chip {
-  background: #f5f5f5;
-  border: 1px solid #e8e8e8;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 13px;
-  color: #555;
+/* Attachments */
+.noemel-attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--noemel-panel-bg);
+  border: 1px solid var(--noemel-border);
+  padding: 12px 16px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  align-self: flex-start;
+}
+
+.noemel-preview-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.noemel-file-tag {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--noemel-text-main);
+}
+
+.noemel-remove-attach {
+  background: transparent;
+  border: none;
+  color: var(--noemel-text-muted);
+  font-size: 20px;
   cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
+  margin-left: auto;
+  transition: color 0.2s;
 }
 
-.noemel-suggestion-chip:hover {
-  background: #eee;
-  border-color: #ddd;
-  color: #1a1a1a;
+.noemel-remove-attach:hover {
+  color: #fff;
 }
 
-/* ---- Responsive ---- */
+/* Slash Command Menu */
+.noemel-command-menu {
+  position: absolute;
+  bottom: calc(100% + 16px);
+  left: 0;
+  right: 0;
+  background: var(--noemel-card-bg);
+  border: 1px solid var(--noemel-border);
+  border-radius: var(--radius-card);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow-soft);
+  z-index: 50;
+  max-height: 320px;
+  overflow-y: auto;
+  animation: slowSpring 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.noemel-command-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.noemel-command-item:hover {
+  background: var(--noemel-border);
+}
+
+.noemel-cmd-tag {
+  background: var(--noemel-panel-bg);
+  border: 1px solid var(--noemel-border);
+  color: var(--noemel-text-main);
+  font-family: monospace;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.noemel-cmd-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.noemel-cmd-info strong {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--noemel-text-main);
+}
+
+.noemel-cmd-info span {
+  font-size: 13px;
+  color: var(--noemel-text-muted);
+}
+
+/* Drag & Drop Overlay */
+.noemel-shell.dragging {
+  border: 1px solid var(--noemel-border-hover);
+}
+
+.noemel-drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: softFadeIn 0.3s ease;
+}
+
+.noemel-drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  background: var(--noemel-card-bg);
+  border: 1px dashed var(--noemel-border-hover);
+  border-radius: var(--radius-panel);
+  padding: 64px 80px;
+  color: var(--noemel-text-main);
+  text-align: center;
+  animation: slowSpring 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.noemel-drop-card h3 {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  margin: 0;
+}
+
+.noemel-drop-card p {
+  font-size: 16px;
+  color: var(--noemel-text-secondary);
+  margin: 0;
+}
+
+/* ======================== RIGHT PANEL: BUILDER ======================== */
+.noemel-right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--noemel-bg);
+  border-left: 1px solid var(--noemel-border);
+  overflow: hidden;
+}
+
+.noemel-builder-toolbar {
+  height: 64px;
+  background: var(--noemel-bg);
+  border-bottom: 1px solid var(--noemel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+.noemel-workspace-tabs,
+.noemel-viewport-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--noemel-panel-bg);
+  padding: 6px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--noemel-border);
+}
+
+.noemel-tab-btn,
+.noemel-viewport-btn {
+  background: transparent;
+  border: none;
+  color: var(--noemel-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.noemel-viewport-btn {
+  padding: 8px 12px;
+}
+
+.noemel-tab-btn:hover,
+.noemel-viewport-btn:hover {
+  color: var(--noemel-text-main);
+}
+
+.noemel-tab-btn.active,
+.noemel-viewport-btn.active {
+  background: var(--noemel-border);
+  color: var(--noemel-text-main);
+}
+
+.noemel-builder-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.noemel-tool-action-btn {
+  background: transparent;
+  border: 1px solid var(--noemel-border);
+  color: var(--noemel-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.noemel-tool-action-btn:hover {
+  background: var(--noemel-panel-bg);
+  color: var(--noemel-text-main);
+  transform: translateY(-1px);
+}
+
+.noemel-tool-action-btn.primary {
+  background: var(--noemel-text-main);
+  border: none;
+  color: var(--noemel-bg);
+}
+
+.noemel-tool-action-btn.primary:hover {
+  transform: scale(0.96);
+  opacity: 0.9;
+}
+
+/* Builder Canvas Area */
+.noemel-builder-view-area {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--noemel-panel-bg);
+  position: relative;
+  overflow: hidden;
+  padding: 32px;
+}
+
+.noemel-viewport-frame {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.noemel-viewport-frame.desktop { width: 100%; }
+.noemel-viewport-frame.tablet { width: 768px; max-width: 100%; }
+.noemel-viewport-frame.mobile { width: 375px; max-width: 100%; }
+
+.noemel-builder-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #ffffff;
+}
+
+.noemel-empty-builder-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  height: 100%;
+  color: var(--noemel-text-secondary);
+  text-align: center;
+}
+
+.noemel-empty-builder-canvas h3 {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  color: var(--noemel-text-main);
+  margin: 0;
+}
+
+.noemel-empty-builder-canvas svg {
+  width: 48px;
+  height: 48px;
+  color: var(--noemel-text-muted);
+}
+
+.noemel-builder-code-view {
+  width: 100%;
+  height: 100%;
+  background: var(--noemel-bg);
+  border-radius: 16px;
+  overflow: auto;
+  padding: 32px;
+  border: 1px solid var(--noemel-border);
+}
+
+.noemel-typing-dots {
+  display: flex;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.noemel-typing-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--noemel-text-muted);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+.noemel-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.noemel-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Artifact Modal (Live Preview) */
+.noemel-artifact-modal {
+  width: 100%;
+  max-width: 1200px;
+  height: 90vh;
+  background: var(--noemel-bg);
+  border: 1px solid var(--noemel-border);
+  border-radius: var(--radius-panel);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  animation: slowSpring 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.noemel-artifact-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  background: var(--noemel-panel-bg);
+  border-bottom: 1px solid var(--noemel-border);
+}
+
+.noemel-artifact-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--noemel-text-main);
+}
+
+.noemel-artifact-close {
+  background: transparent;
+  border: none;
+  color: var(--noemel-text-muted);
+  font-size: 28px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+.noemel-artifact-close:hover {
+  background: var(--noemel-border);
+  color: var(--noemel-text-main);
+}
+
+.noemel-artifact-body {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+.noemel-artifact-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Responsive Overrides */
+@media (max-width: 1100px) {
+  .noemel-left-panel {
+    max-width: 100%;
+    border-right: none;
+  }
+  .noemel-right-panel {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .noemel-sidebar {
     position: fixed;
     left: 0;
     top: 0;
     z-index: 100;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.1);
   }
 
   .noemel-sidebar.collapsed {
     width: 0;
     padding: 0;
     border: none;
-    overflow: hidden;
   }
 
   .noemel-welcome-heading {
-    font-size: 26px;
+    font-size: 40px;
+  }
+  
+  .noemel-composer-wrapper {
+    padding: 0 16px;
   }
 }
+
+
+/* Settings Modal */
+.noemel-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; animation: fadeIn 0.3s ease-out; }
+.noemel-settings-modal { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 480px; padding: 24px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4); }
+.noemel-settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.noemel-settings-header h3 { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text); }
+.noemel-settings-header button { background: transparent; border: none; font-size: 24px; color: var(--subtext); cursor: pointer; transition: color 0.2s; }
+.noemel-settings-header button:hover { color: var(--text); }
+.noemel-settings-group label { display: block; font-size: 0.85rem; color: var(--subtext); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+
+/* ---- Noemel Sidebar Views ---- */
+.noemel-view-container { padding: 40px; display: flex; flex-direction: column; width: 100%; height: 100%; overflow-y: auto; color: var(--text); }
+.noemel-view-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+.noemel-view-title { font-size: 28px; font-weight: 700; margin: 0; }
+.noemel-view-subtitle { font-size: 15px; color: var(--subtext); margin-top: 6px; }
+.noemel-view-btn { padding: 10px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+.noemel-view-btn.primary { background: #fff; color: #000; }
+.noemel-view-btn.primary:hover { background: #ddd; }
+.noemel-view-btn.secondary { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.noemel-view-btn.secondary:hover { background: rgba(255, 255, 255, 0.2); }
+.noemel-view-btn.outline { background: transparent; border: 1px solid #555; color: #fff; }
+.noemel-view-btn.outline:hover { border-color: #fff; }
+.noemel-view-btn.small { padding: 6px 12px; font-size: 12px; }
+
+.noemel-grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.noemel-card { background: rgba(255, 255, 255, 0.02); border: 1px solid #333; border-radius: 8px; overflow: hidden; transition: all 0.2s; display: flex; flex-direction: column; }
+.noemel-card:hover { border-color: #777; }
+.noemel-card-thumb { height: 140px; width: 100%; position: relative; background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid #333; }
+.bw-thumb { display: flex; align-items: center; justify-content: center; }
+
+.noemel-badge { position: absolute; top: 12px; right: 12px; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.noemel-badge.premium { background: transparent; color: #fff; border: 1px dashed #fff; }
+.noemel-badge.free { background: #fff; color: #000; border: 1px solid #fff; }
+.noemel-card-content { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+.noemel-card-content h4 { margin: 0 0 4px 0; font-size: 17px; font-weight: 600; color: #fff; }
+.noemel-card-content p { margin: 0; font-size: 13px; color: #888; }
+.noemel-card-footer { margin-top: auto; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #333; }
+.noemel-card-footer span { font-size: 12px; color: #777; }
+.noemel-card-action { background: transparent; border: none; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
+.noemel-card-action:hover { text-decoration: underline; }
+
+.noemel-agent-card { background: rgba(255, 255, 255, 0.02); border: 1px solid #333; border-radius: 8px; padding: 24px; display: flex; flex-direction: column; align-items: center; text-align: center; transition: all 0.2s; }
+.noemel-agent-card:hover { border-color: #777; }
+.noemel-agent-icon { margin-bottom: 16px; background: rgba(255, 255, 255, 0.05); width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff; }
+.noemel-agent-info h4 { margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #fff; }
+.noemel-agent-info p { margin: 0 0 20px 0; font-size: 14px; color: #888; line-height: 1.5; }
+
+.noemel-search-bar-inline input { background: transparent; border: 1px solid #555; color: #fff; padding: 10px 16px; border-radius: 4px; width: 250px; outline: none; transition: border-color 0.2s; }
+.noemel-search-bar-inline input:focus { border-color: #fff; }
+
+.noemel-table-container { background: rgba(255, 255, 255, 0.02); border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+.noemel-table { width: 100%; border-collapse: collapse; text-align: left; }
+.noemel-table th { padding: 16px 20px; font-size: 13px; text-transform: uppercase; color: #888; font-weight: 600; letter-spacing: 0.5px; border-bottom: 1px solid #333; background: transparent; }
+.noemel-table td { padding: 16px 20px; font-size: 14px; border-bottom: 1px solid #333; color: #fff; }
+.noemel-table tr:last-child td { border-bottom: none; }
+.noemel-table tr:hover td { background: rgba(255, 255, 255, 0.03); }
+.noemel-link { color: #fff; text-decoration: underline; }
+.noemel-link:hover { color: #ccc; }
+.noemel-status-badge { padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; font-family: monospace; }
+.noemel-status-badge.live { color: #fff; }
+.noemel-status-badge.building { color: #aaa; }
+.noemel-status-badge.failed { color: #555; text-decoration: line-through; }
+.noemel-icon-btn { background: transparent; border: none; color: #555; cursor: pointer; padding: 4px; }
+.noemel-icon-btn:hover { color: #fff; }
+
+.noemel-history-list { display: flex; flex-direction: column; gap: 12px; }
+.noemel-history-item { background: rgba(255, 255, 255, 0.02); border: 1px solid #333; border-radius: 8px; padding: 16px 20px; display: flex; align-items: center; transition: all 0.2s; cursor: pointer; }
+.noemel-history-item:hover { border-color: #777; }
+.noemel-history-icon { margin-right: 20px; background: rgba(255, 255, 255, 0.05); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #fff; }
+.noemel-history-content { flex: 1; }
+.noemel-history-content h4 { margin: 0 0 6px 0; font-size: 16px; font-weight: 500; color: #fff; }
+.noemel-history-content span { font-size: 13px; color: #777; }
+
+/* ---- Composer Tools ---- */
+.noemel-composer-tools-row { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+.noemel-composer-tools-left { display: flex; gap: 8px; }
+.noemel-tool-btn { display: flex; align-items: center; gap: 6px; background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); color: var(--subtext); padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.noemel-tool-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+.noemel-tool-btn.recording { color: #ef4444; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); }
+.noemel-composer-send-btn { background: #fff; color: #000; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+.noemel-composer-send-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+.noemel-composer-send-btn:hover:not(.disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2); }
+

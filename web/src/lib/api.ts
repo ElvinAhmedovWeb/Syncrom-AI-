@@ -274,3 +274,36 @@ export async function generateImage(
   }
   return { blob: await res.blob(), usedPrompt };
 }
+
+export async function streamNoemelChat({
+  messages,
+  signal,
+  onChunk,
+}: {
+  messages: ChatMessage[];
+  signal?: AbortSignal;
+  onChunk: (chunk: string) => void;
+}): Promise<void> {
+  const res = await fetch("/api/noemel/chat/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
+    signal,
+  });
+
+  if (!res.ok || !res.body) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    if (chunk) onChunk(chunk);
+  }
+}
+

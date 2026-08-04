@@ -1723,6 +1723,13 @@
   padding: 10px 22px 22px;
   position: relative;
   z-index: 2;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.composer.dragging {
+  background-color: rgba(43, 45, 49, 0.6);
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
 }
 
 .image-preview {
@@ -1730,6 +1737,8 @@
   display: inline-flex;
   margin: 0 auto 10px;
   max-width: 780px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .image-preview img {
@@ -1738,6 +1747,29 @@
   object-fit: cover;
   border-radius: 12px;
   border: 1px solid var(--border-soft);
+}
+
+.doc-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px 16px;
+  max-width: 200px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  position: relative;
+}
+.doc-preview svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.doc-preview span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .image-remove-btn {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import AuthScreen from "../components/AuthScreen";
+import { useNavigate } from "react-router-dom";
 import ChatShell from "../components/ChatShell";
 import AccountMenu from "../components/AccountMenu";
 import { isFirebaseReady, watchAuth, logout, type User } from "../lib/firebase";
@@ -14,6 +14,7 @@ const GUEST_CHATS_KEY = "syncrom_guest_chats";
 const iconProps = { width: 15, height: 15, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 
 export default function ChatPage() {
+  const navigate = useNavigate();
   const t = useT();
   const [booting, setBooting] = useState(true);
   const [user, setUser] = useState<User | null>(null);
@@ -40,8 +41,6 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!isFirebaseReady()) {
-      setIsGuest(true);
-      localStorage.setItem(GUEST_KEY, "1");
       setResolved(true);
       setBooting(false);
       return;
@@ -52,12 +51,10 @@ export default function ChatPage() {
         setUser(u);
         setIsGuest(false);
         localStorage.removeItem(GUEST_KEY);
-      } else if (localStorage.getItem(GUEST_KEY) === "1") {
-        setUser(null);
-        setIsGuest(true);
       } else {
         setUser(null);
         setIsGuest(false);
+        localStorage.removeItem(GUEST_KEY);
       }
       setResolved(true);
       if (first) {
@@ -67,6 +64,12 @@ export default function ChatPage() {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (!booting && resolved && !user && !isGuest) {
+      navigate("/login", { replace: true });
+    }
+  }, [booting, resolved, user, isGuest, navigate]);
 
   if (booting || !resolved) {
     return (
@@ -80,15 +83,7 @@ export default function ChatPage() {
   }
 
   if (!user && !isGuest) {
-    return (
-      <AuthScreen
-        logoSrc="/favicon.png"
-        onGuest={() => {
-          localStorage.setItem(GUEST_KEY, "1");
-          setIsGuest(true);
-        }}
-      />
-    );
+    return null;
   }
 
   const displayName = user?.displayName || user?.email?.split("@")[0] || null;

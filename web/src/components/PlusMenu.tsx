@@ -122,20 +122,18 @@ export default function PlusMenu({
             </button>
           )}
 
-          {agentToolsEnabled && (
-            <button type="button" className="plus-menu-item" onClick={() => { onUploadDocument(); closeAll(); }}>
-              <span className="plus-menu-icon">
-                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-              </span>
-              <span className="plus-menu-text">
-                <b>{t("plus.doc")}</b>
-                <small>{t("plus.docSub")}</small>
-              </span>
-            </button>
-          )}
+          <button type="button" className="plus-menu-item" onClick={() => { onUploadDocument(); closeAll(); }}>
+            <span className="plus-menu-icon">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+            </span>
+            <span className="plus-menu-text">
+              <b>{t("plus.doc")}</b>
+              <small>{t("plus.docSub")}</small>
+            </span>
+          </button>
 
           {agentToolsEnabled && (
             <button

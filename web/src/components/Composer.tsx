@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode, type ClipboardEvent, type DragEvent } from "react";
 import { motion } from "framer-motion";
 import { resizeImageFile } from "../lib/image";
 import { translateTargetLabel, useT } from "../lib/i18n";
@@ -23,6 +23,8 @@ interface Props {
   visionEnabled: boolean;
   pendingImage: string | null;
   onImageChange: (dataUrl: string | null) => void;
+  pendingDocument?: { name: string; text: string } | null;
+  onDocumentChange?: (doc: { name: string; text: string } | null) => void;
   micSupported: boolean;
   recording: boolean;
   onMicToggle: () => void;
@@ -44,8 +46,8 @@ interface Props {
   onToggleTranslate: () => void;
   translateTo: string;
   onSelectTranslateTo: (code: string) => void;
-  slideModeActive: boolean;
-  onToggleSlideMode: () => void;
+  slideModeActive?: boolean;
+  onToggleSlideMode?: () => void;
   hint: string;
   placeholder: string;
 }
@@ -60,6 +62,8 @@ export default function Composer({
   visionEnabled,
   pendingImage,
   onImageChange,
+  pendingDocument,
+  onDocumentChange,
   micSupported,
   recording,
   onMicToggle,
@@ -81,8 +85,8 @@ export default function Composer({
   onToggleTranslate,
   translateTo,
   onSelectTranslateTo,
-  slideModeActive,
-  onToggleSlideMode,
+  slideModeActive = false,
+  onToggleSlideMode = () => {},
   hint,
   placeholder,
 }: Props) {
@@ -90,6 +94,7 @@ export default function Composer({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFile = async (file: File | undefined) => {
     if (!file || !file.type.startsWith("image/")) return;
@@ -104,9 +109,35 @@ export default function Composer({
   const handleDocumentFile = async (file: File | undefined) => {
     if (!file) return;
     try {
-      const text = await file.text();
-      const fenced = `\`\`\`\n// ${file.name}\n${text.slice(0, 12000)}\n\`\`\`\n\n`;
-      onChange(fenced + value);
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      const binaryExts = ["pdf", "docx", "doc", "xlsx", "xls"];
+      let text = "";
+
+      if (ext && binaryExts.includes(ext)) {
+        const reader = new FileReader();
+        text = await new Promise<string>((resolve, reject) => {
+          reader.onload = async () => {
+            try {
+              const base64 = (reader.result as string).split(",")[1];
+              const res = await fetch("/api/parse-document", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: file.name, base64 })
+              });
+              if (!res.ok) throw new Error("Server xətası");
+              const data = await res.json();
+              resolve(data.text);
+            } catch (err) {
+              reject(err);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      } else {
+        text = await file.text();
+      }
+      onDocumentChange?.({ name: file.name, text });
     } catch (e) {
       console.error("Sənəd oxuna bilmədi:", e);
     }
@@ -127,8 +158,66 @@ export default function Composer({
   // useLayoutEffect — boyanmadan əvvəl işləsin ki, sıçrayış görünməsin.
   useLayoutEffect(autoGrow, [value, autoGrow]);
 
+  const handleDragOver = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith("image/")) {
+        void handleFile(file);
+      } else {
+        void handleDocumentFile(file);
+      }
+    }
+  };
+
+  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          void handleFile(file);
+        }
+      } else if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          void handleDocumentFile(file);
+        }
+      }
+    }
+  };
+
   return (
-    <footer className="composer">
+    <footer 
+      className={`composer${isDragging ? " dragging" : ""}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {(imageGenActive || deepThinkActive || agentModeActive || webSearchActive || translateActive || libraActive || slideModeActive) && (
         <div className="mode-pills">
           {imageGenActive && (
@@ -232,12 +321,28 @@ export default function Composer({
         </div>
       )}
 
-      {pendingImage && (
+      {(pendingImage || pendingDocument) && (
         <div className="image-preview">
-          <img src={pendingImage} alt={t("composer.uploadedImage")} />
-          <button type="button" className="image-remove-btn" onClick={() => onImageChange(null)}>
-            ×
-          </button>
+          {pendingImage && (
+            <>
+              <img src={pendingImage} alt={t("composer.uploadedImage")} />
+              <button type="button" className="image-remove-btn" onClick={() => onImageChange(null)}>
+                ×
+              </button>
+            </>
+          )}
+          {pendingDocument && (
+            <div className="doc-preview">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span>{pendingDocument.name}</span>
+              <button type="button" className="image-remove-btn doc-remove-btn" onClick={() => onDocumentChange?.(null)}>
+                ×
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -278,7 +383,7 @@ export default function Composer({
         <input
           ref={documentInputRef}
           type="file"
-          accept=".txt,.md,.js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.cs,.go,.rs,.json,.css,.html,.sql,.yml,.yaml,.csv,.sh"
+          accept=".txt,.md,.js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.cs,.go,.rs,.json,.css,.html,.sql,.yml,.yaml,.csv,.sh,.pdf,.docx,.doc,.xlsx,.xls"
           className="hidden"
           onChange={(e) => {
             void handleDocumentFile(e.target.files?.[0]);
@@ -291,6 +396,7 @@ export default function Composer({
           rows={1}
           placeholder={placeholder}
           value={value}
+          onPaste={handlePaste}
           onChange={(e) => {
             onChange(e.target.value);
             autoGrow();
@@ -325,7 +431,7 @@ export default function Composer({
           type="button"
           className={`pill-send${busy ? " stop" : ""}`}
           title={busy ? t("composer.stop") : t("composer.send")}
-          disabled={!busy && !value.trim() && !pendingImage}
+          disabled={!busy && !value.trim() && !pendingImage && !pendingDocument}
           onClick={busy ? onStop : onSend}
           whileHover={{ y: busy ? 0 : -2, scale: busy ? 1.08 : 1 }}
           whileTap={{ scale: 0.92 }}

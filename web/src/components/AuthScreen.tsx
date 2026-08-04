@@ -11,10 +11,11 @@ import {
 
 interface Props {
   logoSrc: string;
-  onGuest: () => void;
+  onGuest?: () => void;
+  onBackHome?: () => void;
 }
 
-export default function AuthScreen({ logoSrc, onGuest }: Props) {
+export default function AuthScreen({ logoSrc, onGuest, onBackHome }: Props) {
   const { t, lang, setLang } = useI18n();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
@@ -133,9 +134,17 @@ export default function AuthScreen({ logoSrc, onGuest }: Props) {
           <span>{t("auth.google")}</span>
         </button>
 
-        <button type="button" className="auth-guest" onClick={onGuest}>
-          {t("auth.guest")}
-        </button>
+        {onGuest && (
+          <button type="button" className="auth-guest" onClick={onGuest}>
+            {t("auth.guest")}
+          </button>
+        )}
+
+        {onBackHome && (
+          <button type="button" className="auth-guest" onClick={onBackHome} style={{ marginTop: '12px', fontSize: '13px', background: 'transparent', border: '1px solid var(--border)' }}>
+            &larr; Ana səhifəyə qayıt
+          </button>
+        )}
       </motion.div>
     </div>
   );

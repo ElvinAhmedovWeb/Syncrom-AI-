@@ -105,7 +105,7 @@ function resolveModelName(model, providerName) {
   return model?.groqModel || GROQ_MODEL;
 }
 
-app.use(express.json({ limit: "8mb" }));
+app.use(express.json({ limit: "50mb" }));
 
 // Frontend — Vite ilə tikilmiş React/TypeScript tətbiqi ("web/dist").
 // "/" (landing), "/chat" (Syncrom AI) və "/vella" (Vella) React Router tərəfindən
@@ -2147,6 +2147,47 @@ app.post("/api/v1/chat", requireApiKey, async (req, res) => {
 });
 
 // ============================================================
+// Sənəd analizi (PDF, DOCX, XLSX)
+// ============================================================
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
+const xlsx = require("xlsx");
+
+app.post("/api/parse-document", async (req, res) => {
+  try {
+    const { name, base64 } = req.body;
+    if (!name || !base64) {
+      return res.status(400).json({ error: "Fayl adı və base64 məzmunu tələb olunur" });
+    }
+
+    const buffer = Buffer.from(base64, "base64");
+    const ext = name.split(".").pop().toLowerCase();
+    let text = "";
+
+    if (ext === "pdf") {
+      console.log("pdfParse type is:", typeof pdfParse, pdfParse);
+      const data = await pdfParse(buffer);
+      text = data.text;
+    } else if (ext === "docx" || ext === "doc") {
+      const result = await mammoth.extractRawText({ buffer });
+      text = result.value;
+    } else if (ext === "xlsx" || ext === "xls") {
+      const workbook = xlsx.read(buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      text = xlsx.utils.sheet_to_csv(sheet);
+    } else {
+      return res.status(400).json({ error: "Dəstəklənməyən fayl formatı" });
+    }
+
+    res.json({ text: text.trim() });
+  } catch (err) {
+    console.error("Sənəd oxunarkən xəta:", err);
+    res.status(500).json({ error: "Sənəd oxuna bilmədi" });
+  }
+});
+
+// ============================================================
 // Söhbətə avtomatik başlıq
 // ============================================================
 app.post("/api/title", async (req, res) => {
@@ -2308,29 +2349,18 @@ app.post("/api/generate-image", async (req, res) => {
       return res.status(400).json({ error: "prompt tələb olunur" });
     }
 
-    const size = IMAGE_SIZES[req.body.aspect] || IMAGE_SIZES.square;
     const englishPrompt = await toEnglishImagePrompt(prompt);
-    const seed = Math.floor(Math.random() * 1_000_000_000);
-    const url =
-      `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPrompt.slice(0, 800))}` +
-      `?width=${size.width}&height=${size.height}&nologo=true&seed=${seed}&model=sana`;
+    const size = IMAGE_SIZES["square"]; // Hazırda sabit kvadrat ölçü
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+      englishPrompt.slice(0, 1000)
+    )}?width=${size.width}&height=${size.height}&nologo=1&enhance=false`;
 
-    // Zənginləşdirilmiş prompt uzundur və şəkil generasiyası özü yavaşdır —
-    // 60 saniyə bəzən çatmırdı (ölçmədə 45 saniyəyə qədər çəkirdi).
     const response = await fetch(url, { signal: AbortSignal.timeout(90000) });
-
     if (!response.ok) {
-      const errText = await response.text().catch(() => "");
-      console.error("Şəkil yaratma xətası:", response.status, errText.slice(0, 200));
-      const busy = response.status === 429;
-      return res.status(502).json({
-        error: busy
-          ? "Pulsuz şəkil xidməti hazırda məşğuldur — bir neçə saniyə gözləyib yenidən cəhd et."
-          : "Şəkil yaratma xətası",
-      });
+      throw new Error("Pollinations API xətası: " + response.status);
     }
 
-    res.setHeader("Content-Type", response.headers.get("content-type") || "image/jpeg");
+    res.setHeader("Content-Type", "image/jpeg");
     // İstifadə olunan prompt-u klientə qaytarırıq ki, istifadəçi nəyin
     // yaradıldığını görsün və növbəti dəfə özü dəqiqləşdirə bilsin.
     // Başlıq yalnız ASCII qəbul edir — ona görə kodlaşdırılır.
@@ -2365,6 +2395,114 @@ app.get("/downloads/:file", (req, res) => {
     return res.redirect(302, `${DOWNLOADS_BASE_URL}/${encodeURIComponent(safe)}`);
   }
   res.redirect("/?download=pending#download");
+});
+
+// ============================================================
+// Noemel AI Platform - Dedicated NVIDIA NIM API Endpoint
+// ============================================================
+const NOEMEL_NVIDIA_API_KEY =
+  process.env.NOEMEL_NVIDIA_API_KEY ||
+  "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";
+const NOEMEL_MODEL = process.env.NOEMEL_MODEL || "poolside/laguna-xs-2.1";
+
+app.post("/api/noemel/chat/stream", async (req, res) => {
+  try {
+    const { messages } = req.body || {};
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "messages massivi tələb olunur" });
+    }
+
+    const cleanMessages = messages.map((m) => ({
+      role: m.role,
+      content: m.content || "",
+    }));
+
+    let payload = {
+      model: NOEMEL_MODEL,
+      messages: cleanMessages,
+      temperature: 1,
+      top_p: 0.95,
+      max_tokens: 8192,
+      stream: true,
+    };
+
+    let response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${NOEMEL_NVIDIA_API_KEY}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.warn(`NVIDIA streaming HTTP ${response.status}, retrying stream=false...`);
+      payload.stream = false;
+      response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${NOEMEL_NVIDIA_API_KEY}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Noemel NVIDIA API error:", response.status, errText);
+      return res.status(502).json({ error: "NVIDIA NIM API Error", details: errText });
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "";
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.write(content);
+      return res.end();
+    }
+
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === "data: [DONE]") continue;
+        if (trimmed.startsWith("data: ")) {
+          try {
+            const parsed = JSON.parse(trimmed.slice(6));
+            const delta =
+              parsed.choices?.[0]?.delta?.content ||
+              parsed.choices?.[0]?.message?.content;
+            if (delta) {
+              res.write(delta);
+            }
+          } catch {
+            // ignore partial JSON parse
+          }
+        }
+      }
+    }
+
+    res.end();
+  } catch (err) {
+    console.error("Noemel stream error:", err);
+    res.status(500).json({ error: "Server Error", details: err.message });
+  }
 });
 
 // SPA fallback — API və statik fayl olmayan hər GET sorğusuna React tətbiqinin
