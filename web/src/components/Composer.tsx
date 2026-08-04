@@ -34,7 +34,9 @@ interface Props {
   imageAspect: ImageAspect;
   onSelectImageAspect: (a: ImageAspect) => void;
   deepThinkActive: boolean;
+  deepThinkLevel?: string;
   onToggleDeepThink: () => void;
+  setDeepThinkLevel?: (level: string) => void;
   agentToolsEnabled?: boolean;
   agentModeActive: boolean;
   onToggleAgentMode: () => void;
@@ -73,7 +75,9 @@ export default function Composer({
   imageAspect,
   onSelectImageAspect,
   deepThinkActive,
+  deepThinkLevel,
   onToggleDeepThink,
+  setDeepThinkLevel,
   agentToolsEnabled,
   agentModeActive,
   onToggleAgentMode,
@@ -295,6 +299,20 @@ export default function Composer({
                 <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
               </svg>
               {t("mode.deepThink")}
+              {setDeepThinkLevel && (
+                <select
+                  value={deepThinkLevel || "Medium"}
+                  onChange={(e) => setDeepThinkLevel(e.target.value)}
+                  className="effort-selector"
+                  title="Düşüncə səviyyəsi"
+                >
+                  <option value="Slow">Slow</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Max">Max</option>
+                  <option value="UltraMax">UltraMax</option>
+                </select>
+              )}
               <button type="button" onClick={onToggleDeepThink} aria-label={t("composer.turnOff")}>×</button>
             </span>
           )}

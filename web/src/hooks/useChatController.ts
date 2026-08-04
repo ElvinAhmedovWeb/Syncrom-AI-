@@ -77,6 +77,7 @@ export function useChatController({
   const [busy, setBusy] = useState(false);
   const [statusText, setStatusText] = useState(() => t("status.ready"));
   const [deepThink, setDeepThink] = useState(false);
+  const [deepThinkLevel, setDeepThinkLevel] = useState("Medium");
   const [agentMode, setAgentMode] = useState(false);
   const [imageGenMode, setImageGenMode] = useState(false);
   const [imageAspect, setImageAspect] = useState<ImageAspect>(
@@ -340,6 +341,7 @@ export function useChatController({
           modelId: chatSnapshot.modelId || currentModelId,
           userName,
           deepThink,
+          deepThinkLevel,
           agentMode,
           webSearchMode,
           translateMode,
@@ -459,6 +461,7 @@ export function useChatController({
       currentModelId,
       userName,
       deepThink,
+      deepThinkLevel,
       agentMode,
       webSearchMode,
       translateMode,
@@ -885,7 +888,9 @@ export function useChatController({
     busy,
     statusText,
     deepThink,
+    deepThinkLevel,
     toggleDeepThink,
+    setDeepThinkLevel,
     agentMode,
     toggleAgentMode,
     imageGenMode,

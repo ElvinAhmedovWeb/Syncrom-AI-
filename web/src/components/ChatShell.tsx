@@ -370,7 +370,9 @@ export default function ChatShell({
           imageAspect={ctrl.imageAspect}
           onSelectImageAspect={ctrl.selectImageAspect}
           deepThinkActive={ctrl.deepThink}
+          deepThinkLevel={ctrl.deepThinkLevel}
           onToggleDeepThink={ctrl.toggleDeepThink}
+          setDeepThinkLevel={ctrl.setDeepThinkLevel}
           agentToolsEnabled={agentToolsEnabled}
           agentModeActive={ctrl.agentMode}
           onToggleAgentMode={ctrl.toggleAgentMode}

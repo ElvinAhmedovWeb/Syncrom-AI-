@@ -23,6 +23,7 @@ export interface StreamChatArgs {
   modelId: string;
   userName?: string | null;
   deepThink?: boolean;
+  deepThinkLevel?: string;
   agentMode?: boolean;
   webSearchMode?: boolean;
   translateMode?: boolean;
@@ -87,6 +88,7 @@ export async function streamChat({
   modelId,
   userName,
   deepThink,
+  deepThinkLevel,
   agentMode,
   webSearchMode,
   translateMode,
@@ -106,6 +108,7 @@ export async function streamChat({
       modelId,
       userName,
       deepThink,
+      deepThinkLevel,
       agentMode,
       webSearchMode,
       translateMode,

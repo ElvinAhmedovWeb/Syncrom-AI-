@@ -572,30 +572,43 @@ async function wikiSearch(query, lang, limit) {
   }
 }
 
-async function deepThinkContext(questionText) {
+async function deepThinkContext(questionText, level = "Medium") {
   const searchQuery = await extractSearchQuery(questionText);
 
-  let results = await wikiSearch(searchQuery, "az", 3);
-  if (results.length < 2) {
-    const enResults = await wikiSearch(searchQuery, "en", 3);
+  let limit = 3;
+  if (level === "Slow") limit = 1;
+  else if (level === "High") limit = 4;
+  else if (level === "Max") limit = 5;
+  else if (level === "UltraMax") limit = 6;
+
+  let results = await wikiSearch(searchQuery, "az", limit);
+  if (results.length < limit - 1) {
+    const enResults = await wikiSearch(searchQuery, "en", limit);
     // Dublikat başlıqları saxlama
     for (const r of enResults) {
       if (!results.some((x) => x.title === r.title)) results.push(r);
     }
   }
-  results = results.slice(0, 3);
+  results = results.slice(0, limit);
 
-  return { searchQuery, results };
+  return { searchQuery, results, level };
 }
 
-function deepThinkSystemMessage({ searchQuery, results }) {
+function deepThinkSystemMessage({ searchQuery, results, level }) {
   const block = results.length
     ? results.map((r) => `• ${r.title}: ${r.extract}\n  URL: ${r.url}`).join("\n\n")
     : "(bu axtarış üzrə uyğun Wikipedia nəticəsi tapılmadı)";
 
+  let effortInstruction = "Sualı standart dərinlikdə analiz et.";
+  if (level === "Slow") effortInstruction = "Sualı qısa və əsas məqamlara toxunaraq analiz et.";
+  if (level === "High") effortInstruction = "Sualı dərindən və ətraflı analiz et.";
+  if (level === "Max") effortInstruction = "Sualı çox dərindən, bütün detallara fikir verərək analiz et.";
+  if (level === "UltraMax") effortInstruction = "Sualı ən yüksək dərinlikdə, bütün mümkün ssenariləri və detalları əhatə edərək, addım-addım incələ.";
+
   return {
     role: "system",
     content: `DEEP THINK REJİMİ AKTİVDİR. Axtarış açar sözü: "${searchQuery}"
+Düşüncə səviyyəsi (Effort): ${level} - ${effortInstruction}
 
 Wikipedia araşdırma nəticələri:
 
@@ -1211,6 +1224,7 @@ async function buildGroqMessages(req, model) {
     messages,
     userName,
     deepThink,
+    deepThinkLevel,
     agentMode,
     webSearchMode,
     translateMode,
@@ -1244,7 +1258,7 @@ async function buildGroqMessages(req, model) {
 
   // Deep Think aktivdirsə son istifadəçi sualı üzrə araşdırma + əsaslandırma təlimatı əlavə et
   if (deepThink && lastUserText) {
-    const ctx = await deepThinkContext(lastUserText);
+    const ctx = await deepThinkContext(lastUserText, deepThinkLevel || "Medium");
     groqMessages.push(deepThinkSystemMessage(ctx));
   }
 

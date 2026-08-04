@@ -2009,6 +2009,22 @@
   font-weight: 500;
 }
 
+.effort-selector {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: inherit;
+  font-weight: bold;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  padding: 0 2px;
+}
+.effort-selector option {
+  background: var(--bg);
+  color: var(--text);
+}
+
 .mode-pill button {
   background: none;
   border: none;
