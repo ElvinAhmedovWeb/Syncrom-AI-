@@ -25,7 +25,7 @@ const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 // diakritikanı düzgün saxlayır, klişe təkrarlamır, strukturu daha yaxşı qurur.
 const GROQ_MODEL_SMART = process.env.GROQ_MODEL_SMART || "openai/gpt-oss-120b";
 // Şəkil analizi — hesabdakı YEGANƏ vision modeli (gpt-oss şəkil qəbul etmir).
-const GROQ_MODEL_VISION = process.env.GROQ_MODEL_VISION || "qwen/qwen3.6-27b";
+const GROQ_MODEL_VISION = process.env.GROQ_MODEL_VISION || "llama-3.2-11b-vision-preview";
 const GROQ_MODEL_CODE = process.env.GROQ_MODEL_CODE || "openai/gpt-oss-120b";
 // Qısa, sürətli cavablar üçün (Milla). 8b modeli sınaqda sadə faktı səhv
 // cavablandırdı ("Bakı Braziliyanın paytaxtıdır"), ona görə 20b seçilib —
