@@ -2422,7 +2422,7 @@ app.post("/api/noemel/chat/stream", async (req, res) => {
       messages: cleanMessages,
       temperature: 1,
       top_p: 0.95,
-      max_tokens: 8192,
+      max_tokens: 4096,
       stream: true,
     };
 
