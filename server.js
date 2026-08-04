@@ -167,6 +167,7 @@ const MODELS = {
     groqModel: GROQ_MODEL_SMART,
     temperature: 0.4,
     reasoning: true,
+    vision: true,
     persona: `Sən Alina 1.6 — Syncrom AI-ın analitik köməkçi modeli.
 İxtisasın: dərin analiz, məlumatların emalı, maliyyə və biznes təhlili, strukturlaşdırılmış hesabatlar, mürəkkəb problemlərin həlli.
 Üslubun: peşəkar, dəqiq, faktlara əsaslanan, "siz" deyə müraciət edirsən.
@@ -215,6 +216,7 @@ Rəqəmləri adi mətnlə yaz (2 056,25 · 23,5% · 1/6) — LaTeX işlətmə.
     groqModel: GROQ_MODEL_SMART,
     temperature: 0.35,
     reasoning: true,
+    vision: true,
     // 1.8-i 1.6 və 1.7-dən ayıran əsas cəhət: bu modelin ƏSL alətləri var.
     // Analitik cavabda ən böyük risk uydurulmuş rəqəmdir — bu model rəqəmi
     // özü hesablayır, aktual məlumatı isə internetdən yoxlayır.
@@ -1308,10 +1310,19 @@ async function buildGroqBody(req, stream) {
   const { modelId, deepThink, webSearchMode, translateMode } = req.body;
   const model = getModel(modelId);
   const groqMessages = await buildGroqMessages(req, model);
-  const providerName = providerOf(model);
+  let providerName = providerOf(model);
+  let resolvedModel = resolveModelName(model, providerName);
+
+  // Əgər mesajların içində şəkil varsa, modeli avtomatik olaraq Vision modelinə çeviririk.
+  // Bu imkan verir ki, əsas mətn üçün GPT-OSS/Llama-70b istifadə edən modellər də şəkil analiz edə bilsin.
+  const hasImage = groqMessages.some((m) => Array.isArray(m.content) && m.content.some((c) => c.type === "image_url"));
+  if (hasImage) {
+    resolvedModel = GROQ_MODEL_VISION;
+    providerName = "groq";
+  }
 
   const body = {
-    model: resolveModelName(model, providerName),
+    model: resolvedModel,
     messages: groqMessages,
     // Tərcümədə yaradıcılıq zərərlidir — Lira kimi yüksək temperaturlu
     // model seçilsə də sabit, sözə sadiq çeviriş üçün aşağı salırıq.
