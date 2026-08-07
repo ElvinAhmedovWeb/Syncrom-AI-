@@ -18,10 +18,7 @@ onsuz da nisbi `/api/...` çağırır.
 3. Build tənzimləmələri `vercel.json`-dan avtomatik gəlir — əl ilə dəyişmək lazım deyil.
 4. **Environment Variables** əlavə et (Vercel → Project → Settings → Environment Variables):
    - `GROQ_API_KEY` — **məcburi** (chat üçün)
-   - `ELEVENLABS_API_KEY` — **məcburi** (səs üçün)
-   - `ELEVENLABS_VOICE_ID` — **məcburi** (səs üçün)
-   - `DOWNLOADS_BASE_URL` — installer linkləri üçün (aşağı, bölmə 3)
-   - `GROQ_MODEL`, `GROQ_MODEL_VISION`, `GROQ_MODEL_CODE`, `ELEVENLABS_MODEL` — **istəyə görə** (default-ları var)
+   - `GROQ_MODEL`, `GROQ_MODEL_VISION`, `GROQ_MODEL_CODE` — **istəyə görə** (default-ları var)
 5. **Deploy**. Bitəndə Vercel URL-i saytın ünvanıdır.
 
 > Bütün açarlar yalnız serverless funksiyada (server tərəfdə) qalır — brauzerə çıxmır.

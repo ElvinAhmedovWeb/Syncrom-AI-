@@ -1,6 +1,6 @@
 # Syncrom AI 🤖
 
-Groq (süni intellekt söhbəti), ElevenLabs (səsləndirmə) və Firebase (giriş + tarixçə) ilə işləyən AI platforması. 5 ixtisaslaşmış model, şəkil analizi, Wikipedia mənbələri. Frontend **React + TypeScript** (Vite), backend **Express** (yalnız API).
+Groq (süni intellekt söhbəti), Puter.js (səsləndirmə) və Firebase (giriş + tarixçə) ilə işləyən AI platforması. 5 ixtisaslaşmış model, şəkil analizi, Wikipedia mənbələri. Frontend **React + TypeScript** (Vite), backend **Express** (yalnız API).
 
 ## Arxitektura
 
@@ -111,7 +111,7 @@ Yeni model əlavə etmək üçün [server.js](server.js)-də `MODELS` obyektinə
 - 🔎 **Söhbətlərdə axtarış və adını dəyiş** — yan paneldə söhbətləri başlığa görə axtar, qələm ikonu ilə adını dəyiş
 - ⬇ **Söhbəti ixrac et** — cari söhbəti Markdown (.md) faylı kimi endir
 - 📱 **Responsiv dizayn** — mobil/planşet ölçülərində sürüşən yan panel, uyğunlaşan composer və başlıqlar
-- 🔊 **Səsləndirmə** — ElevenLabs ilə cavabları səsləndir, avto-səs rejimi, ekvalayzer animasiyası
+- 🔊 **Səsləndirmə** — Puter.js ilə cavabları səsləndir, avto-səs rejimi, ekvalayzer animasiyası
 - 🎤 **Səsli daxiletmə** — mikrofonla danışaraq yaz (Chrome/Edge)
 - 🎬 **Animasiyalı interfeys** — Framer Motion ilə mesaj/keçid animasiyaları, hər iki temada (Syncrom qara-ağ, Vella lacivərd-qırmızı) ortaq komponentlər üzərindən
 
@@ -151,10 +151,7 @@ Keyla-nın "Kod Köməkçisi" rejimindəki `execute_code` aləti istifadəçi ko
 | `GROQ_MODEL` | Ümumi söhbət modeli — Alina 1.6, Vella, Trila (default: `llama-3.3-70b-versatile`) |
 | `GROQ_MODEL_VISION` | Şəkil analiz modeli — Alina 1.7 (default: `qwen/qwen3.6-27b`) |
 | `GROQ_MODEL_CODE` | Kod modeli — Keyla 5.8 (default: `openai/gpt-oss-120b`) |
-| `ELEVENLABS_API_KEY` | ElevenLabs API açarı |
-| `ELEVENLABS_VOICE_ID` | Səs identifikatoru |
-| `ELEVENLABS_MODEL` | TTS modeli (default: `eleven_multilingual_v2`) |
-| `PORT` | Server portu (default: 3000) |
+| `GROQ_MODEL_CODE` | Llama 3 70B modeli (kod üçün) |
 
 > ⚠️ `.env` faylı `.gitignore`-a əlavə olunub — API açarlarını heç vaxt git-ə göndərmə.
 > Firebase konfiqurasiyası (`web/src/lib/firebase.ts` içində) klient tərəfi üçün nəzərdə tutulub və gizli deyil — təhlükəsizlik Firestore qaydaları ilə təmin olunur.

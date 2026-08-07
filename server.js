@@ -31,10 +31,6 @@ const GROQ_MODEL_CODE = process.env.GROQ_MODEL_CODE || "openai/gpt-oss-120b";
 // cavablandırdı ("Bakı Braziliyanın paytaxtıdır"), ona görə 20b seçilib —
 // ~0.5 san. cavab verir, yəni hələ də "sürətli", amma etibarlıdır.
 const GROQ_MODEL_FAST = process.env.GROQ_MODEL_FAST || "openai/gpt-oss-20b";
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
-const ELEVENLABS_MODEL = process.env.ELEVENLABS_MODEL || "eleven_multilingual_v2";
-
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const groqHeaders = () => ({
   "Content-Type": "application/json",
@@ -52,12 +48,12 @@ const groqHeaders = () => ({
 // NVIDIA-da belə dar TPM həddi yoxdur, ona görə kod modelini oraya
 // yönləndirmək kəsilmə problemini kökündən azaldır.
 // ============================================================
-const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
+const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || process.env.NOEMEL_NVIDIA_API_KEY;
 const NVIDIA_URL =
   process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1/chat/completions";
 // Model id-si build.nvidia.com-dakı kataloqdan TƏSDİQLƏNMƏLİDİR — kataloq
 // dəyişir, ona görə env ilə idarə olunur.
-const NVIDIA_MODEL_CODE = process.env.NVIDIA_MODEL_CODE || "zhipuai/glm-5.2";
+const NVIDIA_MODEL_CODE = process.env.NVIDIA_MODEL_CODE || "meta/llama-3.1-70b-instruct";
 
 // ============================================================
 // Vaxt büdcəsi
@@ -1058,10 +1054,19 @@ async function runAgentLoop(groqMessages, model, onStep = () => {}) {
           "nəyi yoxlaya bilmədinsə bir sətirdə qeyd et.",
       });
     }
-    const providerName = providerOf(model);
+    let providerName = providerOf(model);
+    let resolvedModel = resolveModelName(model, providerName);
+
+    // Dəyişiklik: mesajlarda şəkil varsa, Vision modelinə keç (NVIDIA-nı atlayaraq)
+    const hasImage = messages.some((m) => Array.isArray(m.content) && m.content.some((c) => c.type === "image_url"));
+    if (hasImage) {
+      resolvedModel = GROQ_MODEL_VISION;
+      providerName = "groq";
+    }
+
     const resp = await groqRequest(
       {
-        model: resolveModelName(model, providerName),
+        model: resolvedModel,
         messages,
         temperature: model.temperature,
         // Reasoning modelləri düşüncəsini cavabın İÇİNƏ yazır (qwen bunu xam
@@ -1130,23 +1135,7 @@ async function groqRequest(rawBody, explicitProvider) {
 
   let resp = await doFetch(bodyObj);
 
-  // NVIDIA-da model/ünvan problemi olsa istifadəçi tamamilə cavabsız
-  // qalmasın — Groq-un kod modelinə qayıdırıq. Bu, açar səhv yazılanda
-  // və ya model id-si kataloqda dəyişəndə platformanı işlək saxlayır.
-  if (providerName === "nvidia" && !resp.ok && resp.status !== 429) {
-    const errText = await resp.text();
-    console.warn(
-      `NVIDIA sorğusu alınmadı (${resp.status}), Groq-a qayıdılır:`,
-      errText.slice(0, 200)
-    );
-    const { reasoning_format, ...rest } = bodyObj;
-    resp = await doFetch({ ...rest, model: GROQ_MODEL_CODE }, PROVIDERS.groq);
-    if (!resp.ok) {
-      const err2 = await resp.text();
-      return { failed: true, status: resp.status, errText: err2 };
-    }
-    return resp;
-  }
+
 
   // Sürət limiti (429): Groq cavabında "try again in 5.7675s" kimi gözləmə
   // müddəti göstərir və biz məhz o qədər gözləyirik.
@@ -2250,46 +2239,6 @@ app.post("/api/title", async (req, res) => {
   }
 });
 
-// ============================================================
-// Səsləndirmə — ElevenLabs TTS
-// ============================================================
-app.post("/api/tts", async (req, res) => {
-  try {
-    const { text } = req.body;
-    if (!text || typeof text !== "string") {
-      return res.status(400).json({ error: "text tələb olunur" });
-    }
-
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "xi-api-key": ELEVENLABS_API_KEY,
-        },
-        body: JSON.stringify({
-          text: text.slice(0, 2500),
-          model_id: ELEVENLABS_MODEL,
-          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("ElevenLabs xətası:", response.status, errText);
-      return res.status(502).json({ error: "ElevenLabs API xətası", details: errText });
-    }
-
-    res.setHeader("Content-Type", "audio/mpeg");
-    const buffer = Buffer.from(await response.arrayBuffer());
-    res.send(buffer);
-  } catch (err) {
-    console.error("TTS xətası:", err);
-    res.status(500).json({ error: "Server xətası" });
-  }
-});
 
 // ============================================================
 // Şəkil yaratma — Pollinations.ai (tam pulsuz, API açarı tələb etmir)
@@ -2352,6 +2301,8 @@ async function toEnglishImagePrompt(prompt) {
       .replace(/^["'«»]+|["'«»]+$/g, "")
       .replace(/\s*\n+\s*/g, ", ")
       .trim();
+    // Reasoning modeli bəzən <think> teqləri əlavə edir, bu Pollinations-ı poza bilər
+    out = out.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
     return out || prompt;
   } catch {
     return prompt;
@@ -2369,32 +2320,49 @@ const IMAGE_SIZES = {
 
 app.post("/api/generate-image", async (req, res) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, aspect = "square" } = req.body;
     if (!prompt || typeof prompt !== "string") {
-      return res.status(400).json({ error: "prompt tələb olunur" });
+      return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const englishPrompt = await toEnglishImagePrompt(prompt);
-    const size = IMAGE_SIZES["square"]; // Hazırda sabit kvadrat ölçü
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      englishPrompt.slice(0, 1000)
-    )}?width=${size.width}&height=${size.height}&nologo=1&enhance=false`;
+    // 1. Tərcümə və Təmizləmə
+    let englishPrompt = await toEnglishImagePrompt(prompt);
+    // Hər ehtimala qarşı XML teqlərini və xüsusi simvolları silirik
+    englishPrompt = englishPrompt.replace(/<[^>]*>?/gm, "").trim();
+    if (!englishPrompt) englishPrompt = prompt;
 
-    const response = await fetch(url, { signal: AbortSignal.timeout(90000) });
+    // 2. Ölçü təyini
+    const size = IMAGE_SIZES[aspect] || IMAGE_SIZES["square"];
+    const seed = Math.floor(Math.random() * 10000000);
+    const cleanPrompt = encodeURIComponent(englishPrompt.slice(0, 800));
+    const url = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${size.width}&height=${size.height}&nologo=1&enhance=false&seed=${seed}`;
+
+    // 3. API müraciəti (User-Agent əlavə edilib ki, bot kimi bloklanmasın)
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "image/jpeg, image/png, image/webp, */*",
+        "Accept-Language": "en-US,en;q=0.5"
+      },
+      signal: AbortSignal.timeout(90000)
+    });
+
     if (!response.ok) {
-      throw new Error("Pollinations API xətası: " + response.status);
+      console.error(`Pollinations 500/Xəta aldı: ${response.status} - URL: ${url}`);
+      throw new Error(`Şəkil serveri xətası: ${response.status}`);
     }
 
+    // 4. Şəklin qaytarılması
     res.setHeader("Content-Type", "image/jpeg");
-    // İstifadə olunan prompt-u klientə qaytarırıq ki, istifadəçi nəyin
-    // yaradıldığını görsün və növbəti dəfə özü dəqiqləşdirə bilsin.
-    // Başlıq yalnız ASCII qəbul edir — ona görə kodlaşdırılır.
-    res.setHeader("X-Image-Prompt", encodeURIComponent(englishPrompt.slice(0, 600)));
+    res.setHeader("X-Image-Prompt", encodeURIComponent(englishPrompt.slice(0, 500)));
+    
     const buffer = Buffer.from(await response.arrayBuffer());
     res.send(buffer);
+
   } catch (err) {
     console.error("Şəkil yaratma xətası:", err);
-    res.status(500).json({ error: "Server xətası" });
+    res.status(500).json({ error: "Şəkil yaradıla bilmədi. Server və ya API xətası." });
   }
 });
 

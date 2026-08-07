@@ -663,9 +663,7 @@ export function useChatController({
     setStatusText(t("status.preparingVoice"));
 
     try {
-      const blob = await fetchSpeech(stripForSpeech(text));
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
+      const audio = await fetchSpeech(stripForSpeech(text));
       audioRef.current = audio;
       setSpeaking({ key, state: "playing" });
       setStatusText(t("status.speaking"));
@@ -674,7 +672,6 @@ export function useChatController({
         setSpeaking(null);
         audioRef.current = null;
         setStatusText(t("status.ready"));
-        URL.revokeObjectURL(url);
       });
 
       await audio.play();

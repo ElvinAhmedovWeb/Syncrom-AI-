@@ -236,14 +236,13 @@ export async function generateTitle(messages: ChatMessage[]): Promise<string | n
   }
 }
 
-export async function fetchSpeech(text: string): Promise<Blob> {
-  const res = await fetch("/api/tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  if (!res.ok) throw new Error("TTS xətası");
-  return res.blob();
+export async function fetchSpeech(text: string): Promise<HTMLAudioElement> {
+  // @ts-expect-error Puter is loaded via script tag in index.html
+  if (typeof puter === 'undefined') {
+    throw new Error("Puter.js yüklənməyib");
+  }
+  // @ts-expect-error puter api
+  return await puter.ai.txt2speech(text);
 }
 
 export type ImageAspect = "square" | "landscape" | "portrait";

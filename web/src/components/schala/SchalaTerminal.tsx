@@ -29,7 +29,14 @@ export default function SchalaTerminal() {
     term.open(containerRef.current);
     fitAddon.fit();
 
-    const resizeObserver = new ResizeObserver(() => fitAddon.fit());
+    const resizeObserver = new ResizeObserver(() => {
+      try {
+        fitAddon.fit();
+        if (term.cols && term.rows) {
+          void api.termResize(term.cols, term.rows);
+        }
+      } catch {}
+    });
     resizeObserver.observe(containerRef.current);
 
     const unsubscribe = api.onTermData((data) => term.write(data));
@@ -37,7 +44,7 @@ export default function SchalaTerminal() {
 
     if (!startedRef.current) {
       startedRef.current = true;
-      void api.termStart();
+      void api.termStart(term.cols, term.rows);
     }
 
     return () => {
@@ -59,7 +66,7 @@ export default function SchalaTerminal() {
     await api.termKill();
     startedRef.current = false;
     termRef.current?.reset();
-    await api.termStart();
+    await api.termStart(termRef.current?.cols, termRef.current?.rows);
     startedRef.current = true;
   }
 

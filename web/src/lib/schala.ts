@@ -28,6 +28,9 @@ export interface SchalaAPI {
   writeFile: (relPath: string, content: string) => Promise<boolean>;
   gitStatus: () => Promise<Record<string, string>>;
   gitBranch: () => Promise<string | null>;
+  gitShow: (relPath: string) => Promise<string>;
+  gitDiff: () => Promise<string>;
+  searchGlobal: (query: string) => Promise<{ path: string; line: number; match: string }[]>;
 
   winMinimize: () => Promise<void>;
   winMaximize: () => Promise<void>;
@@ -35,8 +38,9 @@ export interface SchalaAPI {
   winIsMaximized: () => Promise<boolean>;
   onWinMaximizedChange: (cb: (isMaximized: boolean) => void) => () => void;
 
-  termStart: () => Promise<boolean>;
+  termStart: (cols?: number, rows?: number) => Promise<boolean>;
   termWrite: (data: string) => Promise<void>;
+  termResize: (cols: number, rows: number) => Promise<void>;
   termKill: () => Promise<void>;
   onTermData: (cb: (data: string) => void) => () => void;
 }

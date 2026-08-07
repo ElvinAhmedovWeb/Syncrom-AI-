@@ -146,7 +146,7 @@ export default function ChatPage() {
       storageKeyForModel="syncrom_model"
       inputPlaceholder={t("composer.placeholder")}
       hint={t("composer.hint")}
-      imageGenEnabled
+      imageGenEnabled={true}
       sidebarFooter={(api) => (
         <AccountMenu
           displayName={displayName}

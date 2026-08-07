@@ -698,12 +698,9 @@ export default function NoemelPage() {
     setPlayingMsgIndex(msgIndex);
     try {
       const clean = stripForSpeech(text);
-      const blob = await fetchSpeech(clean);
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
+      const audio = await fetchSpeech(clean);
       audio.onended = () => {
         setPlayingMsgIndex(null);
-        URL.revokeObjectURL(url);
       };
       audio.onerror = () => {
         setPlayingMsgIndex(null);

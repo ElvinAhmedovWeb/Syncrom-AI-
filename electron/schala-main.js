@@ -181,6 +181,47 @@ function gitBranch() {
 
 ipcMain.handle("schala:gitBranch", async () => gitBranch());
 
+ipcMain.handle("schala:gitShow", async (_event, relPath) => {
+  if (!rootDir || !relPath) return "";
+  return new Promise((resolve) => {
+    // Windows yollarını git üçün / formatına çeviririk
+    const posixPath = relPath.split(/[\\/]/).join("/");
+    execFile("git", ["show", `HEAD:${posixPath}`], { cwd: rootDir, timeout: 5000, windowsHide: true }, (err, stdout) => {
+      if (err) resolve("");
+      else resolve(stdout);
+    });
+  });
+});
+
+ipcMain.handle("schala:searchGlobal", async (_event, query) => {
+  if (!rootDir || !query) return [];
+  return new Promise((resolve) => {
+    execFile("git", ["grep", "-n", "-i", query], { cwd: rootDir, timeout: 10000, windowsHide: true }, (err, stdout) => {
+      if (err) return resolve([]);
+      const results = [];
+      for (const line of stdout.split("\n")) {
+        const parts = line.split(":");
+        if (parts.length >= 3) {
+          const filePath = parts[0];
+          const lineNumber = parseInt(parts[1], 10);
+          const match = parts.slice(2).join(":");
+          results.push({ path: filePath, line: lineNumber, match });
+        }
+      }
+      resolve(results.slice(0, 150));
+    });
+  });
+});
+
+ipcMain.handle("schala:gitDiff", async () => {
+  if (!rootDir) return "";
+  return new Promise((resolve) => {
+    execFile("git", ["diff", "HEAD"], { cwd: rootDir, timeout: 10000, windowsHide: true }, (err, stdout) => {
+      resolve(stdout || "");
+    });
+  });
+});
+
 // ---------- Pəncərə idarəetməsi (Windows-un xüsusi başlıq zolağı üçün) ----------
 ipcMain.handle("schala:winMinimize", () => mainWindow?.minimize());
 ipcMain.handle("schala:winMaximize", () => {
@@ -197,15 +238,26 @@ ipcMain.handle("schala:winIsMaximized", () => !!mainWindow?.isMaximized());
 // proqramlar (vim, htop) düzgün işləməyə bilər, amma adi əmrlər (npm, git,
 // node) normal işləyir.
 let termProcess = null;
+const pty = require("node-pty");
 
-ipcMain.handle("schala:termStart", () => {
+ipcMain.handle("schala:termStart", (_event, cols = 80, rows = 24) => {
   if (termProcess) return true;
   if (!rootDir) return false;
-  const shellCmd = process.platform === "win32" ? process.env.COMSPEC || "cmd.exe" : process.env.SHELL || "/bin/bash";
-  termProcess = spawn(shellCmd, [], { cwd: rootDir, env: process.env, windowsHide: true });
-  termProcess.stdout.on("data", (chunk) => mainWindow?.webContents.send("schala:termData", chunk.toString()));
-  termProcess.stderr.on("data", (chunk) => mainWindow?.webContents.send("schala:termData", chunk.toString()));
-  termProcess.on("exit", () => {
+  const shellCmd = process.platform === "win32" ? process.env.COMSPEC || "powershell.exe" : process.env.SHELL || "/bin/bash";
+  
+  termProcess = pty.spawn(shellCmd, [], {
+    name: "xterm-color",
+    cols: cols,
+    rows: rows,
+    cwd: rootDir,
+    env: process.env,
+  });
+
+  termProcess.onData((data) => {
+    mainWindow?.webContents.send("schala:termData", data);
+  });
+
+  termProcess.onExit(() => {
     mainWindow?.webContents.send("schala:termData", "\r\n[proses bitdi]\r\n");
     termProcess = null;
   });
@@ -213,7 +265,15 @@ ipcMain.handle("schala:termStart", () => {
 });
 
 ipcMain.handle("schala:termWrite", (_event, data) => {
-  termProcess?.stdin.write(data);
+  termProcess?.write(data);
+});
+
+ipcMain.handle("schala:termResize", (_event, cols, rows) => {
+  if (termProcess) {
+    try {
+      termProcess.resize(cols, rows);
+    } catch {}
+  }
 });
 
 ipcMain.handle("schala:termKill", () => {

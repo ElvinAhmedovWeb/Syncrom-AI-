@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
+import { DiffEditor } from "@monaco-editor/react";
 import SchalaTitleBar from "../components/schala/SchalaTitleBar";
 import SchalaActivityBar, { type SchalaView } from "../components/schala/SchalaActivityBar";
 import SchalaFileTree from "../components/schala/SchalaFileTree";
@@ -10,6 +11,8 @@ import SchalaChat from "../components/schala/SchalaChat";
 import SchalaComposer from "../components/schala/SchalaComposer";
 import SchalaTerminal from "../components/schala/SchalaTerminal";
 import SchalaStatusBar from "../components/schala/SchalaStatusBar";
+import SchalaSearch from "../components/schala/SchalaSearch";
+import SchalaDummyPanel from "../components/schala/SchalaDummyPanel";
 import { IconUndo, IconFolder, IconFile, IconGitClone } from "../components/schala/schalaIcons";
 import { flattenFiles, getSchalaAPI, languageForPath, type SchalaFileNode, type SchalaOpenFolderResult } from "../lib/schala";
 import { addRecentProject, loadRecentProjects, type RecentProject } from "../lib/schalaRecent";
@@ -19,6 +22,8 @@ interface OpenFile {
   content: string;
   dirty: boolean;
   previousContent?: string;
+  isDiff?: boolean;
+  originalContent?: string;
 }
 
 type RightTab = "chat" | "composer" | "terminal";
@@ -134,16 +139,22 @@ export default function SchalaPage() {
   }, [api, cloneUrl, applyOpenResult]);
 
   const handleOpenFile = useCallback(
-    async (path: string) => {
+    async (path: string, line?: number, isDiff?: boolean) => {
       if (!api) return;
       if (openFiles.some((f) => f.path === path)) {
         setActivePath(path);
+        if (line) setCursor({ line, col: 1 });
         return;
       }
       try {
         const content = await api.readFile(path);
-        setOpenFiles((prev) => [...prev, { path, content, dirty: false }]);
+        let originalContent = undefined;
+        if (isDiff) {
+          originalContent = await api.gitShow(path);
+        }
+        setOpenFiles((prev) => [...prev, { path, content, dirty: false, isDiff, originalContent }]);
         setActivePath(path);
+        if (line) setCursor({ line, col: 1 });
       } catch (e) {
         setErrorMsg(`"${path}" oxuna bilmədi: ${errorText(e)}`);
       }
@@ -290,11 +301,24 @@ export default function SchalaPage() {
         <aside className="schala-sidebar">
           {rootPath ? (
             <>
-              <div className="schala-sidebar-label">{activityView === "explorer" ? rootPath.split(/[\\/]/).pop() : "SOURCE CONTROL"}</div>
+              <div className="schala-sidebar-label">
+                {activityView === "explorer"
+                  ? rootPath.split(/[\\/]/).pop()
+                  : activityView === "git"
+                  ? "SOURCE CONTROL"
+                  : activityView.toUpperCase()}
+              </div>
               {activityView === "explorer" ? (
                 <SchalaFileTree nodes={tree} activePath={activePath} onOpenFile={(p) => void handleOpenFile(p)} gitStatus={gitStatus} />
+              ) : activityView === "git" ? (
+                <SchalaSourceControl gitStatus={gitStatus} branch={branch} onOpenFile={(p) => void handleOpenFile(p, undefined, true)} />
+              ) : activityView === "search" ? (
+                <SchalaSearch onOpenFile={(p, l) => void handleOpenFile(p, l)} />
               ) : (
-                <SchalaSourceControl gitStatus={gitStatus} branch={branch} onOpenFile={(p) => void handleOpenFile(p)} />
+                <SchalaDummyPanel 
+                  title={activityView.charAt(0).toUpperCase() + activityView.slice(1)} 
+                  description="Bu bölmə üzərində iş gedir..." 
+                />
               )}
             </>
           ) : (
@@ -361,18 +385,29 @@ export default function SchalaPage() {
           )}
 
           {activeFile ? (
-            <Editor
-              key={activeFile.path}
-              path={activeFile.path}
-              language={languageForPath(activeFile.path)}
-              value={activeFile.content}
-              theme="vs-dark"
-              onChange={handleEditorChange}
-              onMount={(editor) => {
-                editor.onDidChangeCursorPosition((e) => setCursor({ line: e.position.lineNumber, col: e.position.column }));
-              }}
-              options={{ fontSize: 13, minimap: { enabled: true }, automaticLayout: true }}
-            />
+            activeFile.isDiff && activeFile.originalContent !== undefined ? (
+              <DiffEditor
+                key={`diff-${activeFile.path}`}
+                original={activeFile.originalContent}
+                modified={activeFile.content}
+                language={languageForPath(activeFile.path)}
+                theme="vs-dark"
+                options={{ fontSize: 13, automaticLayout: true, readOnly: true }}
+              />
+            ) : (
+              <Editor
+                key={activeFile.path}
+                path={activeFile.path}
+                language={languageForPath(activeFile.path)}
+                value={activeFile.content}
+                theme="vs-dark"
+                onChange={handleEditorChange}
+                onMount={(editor) => {
+                  editor.onDidChangeCursorPosition((e) => setCursor({ line: e.position.lineNumber, col: e.position.column }));
+                }}
+                options={{ fontSize: 13, minimap: { enabled: true }, automaticLayout: true }}
+              />
+            )
           ) : (
             <SchalaWelcome
               onOpenFolder={() => void handleOpenFolder()}
